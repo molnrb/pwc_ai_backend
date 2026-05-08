@@ -94,7 +94,8 @@ def run_full_audit(
     """
     _ensure_dirs()
     started_at = datetime.now(timezone.utc).isoformat()
-    pdf_path = INPUT_DIR / pdf_filename
+    pdf_path = _resolve_pdf_path(pdf_filename)
+    pdf_filename = pdf_path.name
 
     # ── Phase 1: Parse ──
     _emit(progress_callback, "parse_start", {"file": pdf_filename})
@@ -401,6 +402,19 @@ def _parse_value(raw) -> float | int:
     if isinstance(raw, str) and raw.endswith("%"):
         return int(raw.replace("%", "").strip())
     return float(raw) if isinstance(raw, (int, float)) else int(raw)
+
+
+def _resolve_pdf_path(pdf_filename: str) -> Path:
+    candidate = INPUT_DIR / pdf_filename
+    if candidate.exists():
+        return candidate
+
+    pdf_files = sorted(path for path in INPUT_DIR.glob('*.pdf') if path.is_file())
+    if len(pdf_files) == 1:
+        return pdf_files[0]
+    if len(pdf_files) > 1:
+        return pdf_files[0]
+    raise FileNotFoundError(f'No PDF file found in {INPUT_DIR}')
 
 
 def _get_page_count(pdf_path: Path) -> int:

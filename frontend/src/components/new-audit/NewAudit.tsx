@@ -5,12 +5,34 @@ import { StepUpload } from './StepUpload';
 import { StepConfigure } from './StepConfigure';
 import { StepReview } from './StepReview';
 
-export const NewAudit = ({ onComplete }: { onComplete: () => void }) => {
+export interface PendingUploadFile {
+  file: File;
+  id: string;
+  name: string;
+  sizeLabel: string;
+}
+
+export const NewAudit = ({ onComplete }: { onComplete: (files: File[]) => Promise<void> | void }) => {
   const [step, setStep] = useState(1);
-  const [files, setFiles] = useState<any[]>([]);
+  const [files, setFiles] = useState<PendingUploadFile[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleNext = () => setStep(s => Math.min(3, s + 1));
   const handlePrev = () => setStep(s => Math.max(1, s - 1));
+
+  const handleComplete = async () => {
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      await onComplete(files.map((entry) => entry.file));
+    } catch (err: any) {
+      setError(err.message || 'Launch failed.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-[#1A1A2E] max-w-4xl mx-auto w-full">
@@ -36,7 +58,7 @@ export const NewAudit = ({ onComplete }: { onComplete: () => void }) => {
         >
           {step === 1 && <StepUpload files={files} setFiles={setFiles} />}
           {step === 2 && <StepConfigure />}
-          {step === 3 && <StepReview files={files} onComplete={onComplete} />}
+          {step === 3 && <StepReview files={files} onComplete={handleComplete} submitting={submitting} error={error} />}
         </motion.div>
       </AnimatePresence>
 

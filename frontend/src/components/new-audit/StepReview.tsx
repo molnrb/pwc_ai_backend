@@ -1,6 +1,14 @@
 import React from 'react';
+import type { PendingUploadFile } from './NewAudit';
 
-export const StepReview = ({ files, onComplete }: any) => {
+interface Props {
+  files: PendingUploadFile[];
+  onComplete: () => void;
+  submitting: boolean;
+  error: string | null;
+}
+
+export const StepReview = ({ files, onComplete, submitting, error }: Props) => {
   return (
     <div className="space-y-8">
       <h2 className="text-xl font-bold text-white uppercase tracking-tight">Step 3 of 3: Review & Launch</h2>
@@ -10,10 +18,10 @@ export const StepReview = ({ files, onComplete }: any) => {
           <div>
             <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-2">Uploaded Files</p>
             <div className="space-y-1">
-              {files.map((f: any, i: number) => (
-                <p key={i} className="text-xs text-white font-mono flex justify-between">
+              {files.map((f) => (
+                <p key={f.id} className="text-xs text-white font-mono flex justify-between">
                   <span>{f.name}</span>
-                  <span className="opacity-50">{f.size}</span>
+                  <span className="opacity-50">{f.sizeLabel}</span>
                 </p>
               ))}
               {files.length === 0 && <p className="text-xs text-slate-500 italic">No files uploaded</p>}
@@ -37,10 +45,12 @@ export const StepReview = ({ files, onComplete }: any) => {
       <div className="space-y-6">
         <button 
           onClick={onComplete}
+          disabled={submitting}
           className="w-full bg-[#E8521A] hover:bg-[#E8521A]/90 text-white p-6 rounded-sm font-bold uppercase tracking-[0.2em] text-lg shadow-2xl shadow-[#E8521A]/30 active:scale-95 transition-all"
         >
-          Launch Audit
+          {submitting ? 'Launching...' : 'Launch Audit'}
         </button>
+        {error && <p className="text-center text-xs text-red-400 font-medium">{error}</p>}
         <p className="text-center text-[10px] text-slate-500 font-bold uppercase tracking-widest">
           Atlas will notify you when the audit is complete
         </p>

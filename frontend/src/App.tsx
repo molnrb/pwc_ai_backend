@@ -7,10 +7,24 @@ import { SourceTraceTable } from './components/audit/SourceTraceTable';
 import { AgentFeed } from './components/audit/AgentFeed';
 import { Dashboard } from './components/dashboard/Dashboard';
 import { NewAudit } from './components/new-audit/NewAudit';
+import { useAtlasData } from './hooks/useAtlasData';
+import { uploadInputFiles } from './services/api';
 
 export default function App() {
   const [view, setView] = useState<'Dashboard' | 'Audit Logs' | 'Settings' | 'New Audit'>('Audit Logs');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { evidence, summary, feed, loading, runAudit, startStream, addFeedEntry } = useAtlasData();
+
+  const handleAuditComplete = async (files: File[] = []) => {
+    if (files.length > 0) {
+      addFeedEntry('SYSTEM', `Uploading ${files.length} file(s) to backend workspace...`);
+      const upload = await uploadInputFiles(files);
+      addFeedEntry('SYSTEM', `Upload complete. ${upload.input_file_count} file(s) ready.`);
+    }
+
+    setView('Audit Logs');
+    await runAudit();
+  };
 
   return (
     <div className="flex h-screen bg-[#1A1A2E] text-slate-300 font-sans selection:bg-[#E8521A] selection:text-white overflow-hidden">
@@ -23,12 +37,17 @@ export default function App() {
 
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <Header 
-          view={view} 
+          view={view}
+          evidenceCount={evidence.length}
+          redCount={summary?.red_count ?? 0}
+          loading={loading}
+          onRunAudit={() => void runAudit()}
+          onStartStream={startStream}
           setIsSidebarOpen={setIsSidebarOpen} 
         />
 
         <div className="flex-1 flex overflow-hidden">
-          {view === 'Dashboard' && <Dashboard />}
+          {view === 'Dashboard' && <Dashboard evidence={evidence} summary={summary} feed={feed} />}
           
           {view === 'Settings' && (
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#1A1A2E]">
@@ -40,21 +59,21 @@ export default function App() {
           )}
 
           {view === 'New Audit' && (
-            <NewAudit onComplete={() => setView('Audit Logs')} />
+            <NewAudit onComplete={handleAuditComplete} />
           )}
 
           {view === 'Audit Logs' && (
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-              <RegulatoryExtracts />
+              <RegulatoryExtracts evidence={evidence} />
               <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-                <SourceTraceTable />
-                <AgentFeed />
+                <SourceTraceTable evidence={evidence} />
+                <AgentFeed feed={feed} />
               </div>
             </div>
           )}
         </div>
 
-        <StatusBar />
+        <StatusBar evidence={evidence} summary={summary} loading={loading} />
       </main>
 
       <style>{`
