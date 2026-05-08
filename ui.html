@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atlas CSRD Audit Intelligence</title>
+  <style>
+    :root {
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --grey: #9ca3af;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; }
+    .header .badge {
+      font-size: 0.75rem; background: #1e40af; padding: 0.25rem 0.75rem;
+      border-radius: 999px; color: #bfdbfe;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .summary-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 0.75rem; padding: 1.25rem; text-align: center;
+    }
+    .summary-card .count { font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .summary-card .label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .summary-card.green .count { color: var(--green); }
+    .summary-card.yellow .count { color: var(--yellow); }
+    .summary-card.red .count { color: var(--red); }
+    .summary-card.grey .count { color: var(--grey); }
+
+    .actions { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: center; }
+    button {
+      padding: 0.75rem 1.5rem; border-radius: 0.5rem; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-size: 0.875rem; font-weight: 500;
+      cursor: pointer; transition: all 0.2s;
+    }
+    button:hover { background: #334155; }
+    button.primary { background: #2563eb; border-color: #2563eb; color: white; }
+    button.primary:hover { background: #1d4ed8; }
+    button.danger { background: #991b1b; border-color: #991b1b; color: white; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .mock-badge {
+      font-size: 0.75rem; padding: 0.35rem 0.75rem; border-radius: 999px;
+      background: #1e40af; color: #bfdbfe; font-weight: 500;
+    }
+
+    .evidence-table {
+      width: 100%; border-collapse: collapse; background: var(--card);
+      border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden;
+    }
+    .evidence-table th {
+      text-align: left; padding: 0.75rem 1rem; font-size: 0.75rem; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted); border-bottom: 1px solid var(--border);
+      background: #0f172a;
+    }
+    .evidence-table td { padding: 0.75rem 1rem; font-size: 0.875rem; border-bottom: 1px solid var(--border); }
+    .evidence-table tr:last-child td { border-bottom: none; }
+    .flag-dot {
+      display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 0.5rem;
+    }
+    .flag-dot.green { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .flag-dot.yellow { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+    .flag-dot.red { background: var(--red); box-shadow: 0 0 8px var(--red); }
+    .flag-dot.grey { background: var(--grey); }
+    .deviation { font-family: 'SF Mono', 'Fira Code', monospace; font-weight: 600; }
+
+    .red-flags {
+      margin-top: 2rem; background: var(--card); border: 1px solid #7f1d1d;
+      border-radius: 0.75rem; padding: 1.5rem;
+    }
+    .red-flags h2 { color: var(--red); font-size: 1rem; margin-bottom: 1rem; }
+    .red-flags .flag-item { padding: 0.5rem 0; border-bottom: 1px solid #334155; font-size: 0.875rem; }
+    .red-flags .flag-item:last-child { border-bottom: none; }
+
+    .stream-log {
+      margin-top: 2rem; background: #020617; border: 1px solid var(--border);
+      border-radius: 0.75rem; padding: 1rem; max-height: 300px; overflow-y: auto;
+      font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.75rem; color: var(--muted);
+    }
+    .stream-log .entry { padding: 0.25rem 0; }
+    .stream-log .entry .agent { color: #60a5fa; }
+    .stream-log .entry .agent-done { color: #22c55e; }
+    .stream-log .entry .todo-event { color: #eab308; }
+    .stream-log .entry .error { color: var(--red); }
+
+    .todo-panel {
+      margin-bottom: 1.5rem; background: var(--card); border: 1px solid var(--border);
+      border-radius: 0.75rem; padding: 1rem;
+    }
+    .todo-panel h3 { font-size: 0.85rem; margin-bottom: 0.75rem; color: var(--yellow); }
+    .todo-item { padding: 0.35rem 0; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem; }
+    .todo-item.done { color: var(--muted); text-decoration: line-through; }
+    .todo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); display: inline-block; }
+    .todo-dot.done { background: var(--green); }
+
+    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .spinner {
+      display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border);
+      border-top: 2px solid #60a5fa; border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin-right: 0.5rem; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>🔍 Atlas CSRD Audit Intelligence</h1>
+      <span style="font-size:0.75rem;color:var(--muted);">ESRS E1 — Climate Change</span>
+    </div>
+    <div style="display:flex;gap:0.75rem;align-items:center;">
+      <span class="mock-badge" id="mock-badge">⏳ MOCK MODE</span>
+      <span class="badge">DeepSeek</span>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+      <div class="summary-card green">
+        <div class="count" id="green-count">—</div>
+        <div class="label">🟢 Green</div>
+      </div>
+      <div class="summary-card yellow">
+        <div class="count" id="yellow-count">—</div>
+        <div class="label">🟡 Yellow</div>
+      </div>
+      <div class="summary-card red">
+        <div class="count" id="red-count">—</div>
+        <div class="label">🔴 Red</div>
+      </div>
+      <div class="summary-card grey">
+        <div class="count" id="grey-count">—</div>
+        <div class="label">⚪ Grey / N/A</div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="primary" id="btn-audit" onclick="runAudit()">▶ Run Full Audit</button>
+      <button id="btn-stream" onclick="startStream()">📡 Live Stream (SSE)</button>
+      <button onclick="loadEvidence()">🔄 Refresh</button>
+    </div>
+
+    <!-- Todo panel -->
+    <div id="todo-panel"></div>
+
+    <!-- Evidence Table -->
+    <div id="evidence-container">
+      <div class="empty-state">
+        <div class="icon">📊</div>
+        <p>No evidence yet. Run an audit or start the live stream.</p>
+      </div>
+    </div>
+
+    <!-- Red Flags -->
+    <div id="red-flags-container"></div>
+
+    <!-- Stream Log -->
+    <div class="stream-log" id="stream-log">
+      <div class="entry"><span class="agent">[system]</span> Ready. Click "Run Full Audit" or "Live Stream" to begin.</div>
+    </div>
+  </div>
+
+  <script>
+    let evidenceData = [];
+    let streamSource = null;
+    let todoItems = [];
+
+    function renderEvidence() {
+      if (evidenceData.length === 0) {
+        document.getElementById('evidence-container').innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📊</div>
+            <p>No evidence yet. Run an audit or start the live stream.</p>
+          </div>`;
+        document.getElementById('red-flags-container').innerHTML = '';
+        updateSummary({ green_count: 0, yellow_count: 0, red_count: 0, grey_count: 0, red_flags: [] });
+        return;
+      }
+
+      const sorted = [...evidenceData].sort((a, b) => (a.page || 0) - (b.page || 0));
+      const rows = sorted.map(e => `
+        <tr>
+          <td><span class="flag-dot ${e.flag || 'grey'}"></span>${e.flag || 'grey'}</td>
+          <td><strong>${e.data_point || 'N/A'}</strong></td>
+          <td>${e.claimed_value ?? '—'} ${e.unit || ''}</td>
+          <td>${e.source_value ?? '—'} ${e.unit || ''}</td>
+          <td class="deviation" style="color:${(e.deviation_pct || 0) > 5 ? 'var(--red)' : (e.deviation_pct || 0) > 0.5 ? 'var(--yellow)' : 'var(--green)'}">${e.deviation_pct != null ? e.deviation_pct + '%' : 'N/A'}</td>
+          <td>${e.source_file || '—'}</td>
+          <td style="font-size:0.75rem;color:var(--muted);max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(e.claim_text || '').replace(/"/g, '"')}">${e.claim_text || '—'}</td>
+        </tr>`).join('');
+
+      document.getElementById('evidence-container').innerHTML = `
+        <table class="evidence-table">
+          <thead>
+            <tr>
+              <th>Flag</th>
+              <th>Data Point</th>
+              <th>Claimed</th>
+              <th>Source</th>
+              <th>Deviation</th>
+              <th>Source File</th>
+              <th>Claim Text</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+
+      const reds = evidenceData.filter(e => e.flag === 'red');
+      if (reds.length > 0) {
+        document.getElementById('red-flags-container').innerHTML = `
+          <div class="red-flags">
+            <h2>🚨 Critical Deviations Requiring Attention</h2>
+            ${reds.map(r => `<div class="flag-item"><strong>${r.data_point}</strong>: ${r.explanation || `Deviation: ${r.deviation_pct}%`}</div>`).join('')}
+          </div>`;
+      } else {
+        document.getElementById('red-flags-container').innerHTML = '';
+      }
+
+      updateSummary({
+        green_count: evidenceData.filter(e => e.flag === 'green').length,
+        yellow_count: evidenceData.filter(e => e.flag === 'yellow').length,
+        red_count: evidenceData.filter(e => e.flag === 'red').length,
+        grey_count: evidenceData.filter(e => !['green', 'yellow', 'red'].includes(e.flag)).length,
+        red_flags: reds.map(r => ({ data_point: r.data_point, issue: r.explanation }))
+      });
+    }
+
+    function updateSummary(s) {
+      document.getElementById('green-count').textContent = s.green_count;
+      document.getElementById('yellow-count').textContent = s.yellow_count;
+      document.getElementById('red-count').textContent = s.red_count;
+      document.getElementById('grey-count').textContent = s.grey_count;
+    }
+
+    function renderTodos(items) {
+      todoItems = items.map(t => ({ text: t, done: false }));
+      const panel = document.getElementById('todo-panel');
+      panel.innerHTML = `
+        <div class="todo-panel">
+          <h3>📋 Audit Todo List (${todoItems.filter(t => t.done).length}/${todoItems.length})</h3>
+          ${todoItems.map((t, i) => `
+            <div class="todo-item ${t.done ? 'done' : ''}" id="todo-${i}">
+              <span class="todo-dot ${t.done ? 'done' : ''}"></span>${t.text}
+            </div>
+          `).join('')}
+        </div>`;
+    }
+
+    async function loadEvidence() {
+      try {
+        const resp = await fetch('/evidence');
+        const data = await resp.json();
+        evidenceData = data.evidence || [];
+        renderEvidence();
+        logStream('system', `Loaded ${evidenceData.length} evidence items.`);
+        // Check mock mode
+        checkHealth();
+      } catch (err) {
+        logStream('error', `Failed to load evidence: ${err.message}`);
+      }
+    }
+
+    async function checkHealth() {
+      try {
+        const resp = await fetch('/health');
+        const data = await resp.json();
+        document.getElementById('mock-badge').textContent = data.mock_mode ? '🔶 MOCK MODE' : '🟢 LIVE MODE';
+        document.getElementById('mock-badge').style.background = data.mock_mode ? '#92400e' : '#166534';
+      } catch(e) {}
+    }
+
+    async function runAudit() {
+      const btn = document.getElementById('btn-audit');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Running...';
+      logStream('system', 'Starting full audit...');
+
+      try {
+        const resp = await fetch('/audit', { method: 'POST' });
+        const data = await resp.json();
+        evidenceData = data.evidence || [];
+        renderEvidence();
+        logStream('system', `Audit complete. ${evidenceData.length} findings.`);
+        if (data.summary) {
+          logStream('system', `${data.summary.green_count} green, ${data.summary.yellow_count} yellow, ${data.summary.red_count} red`);
+        }
+      } catch (err) {
+        logStream('error', `Audit failed: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '▶ Run Full Audit';
+      }
+      checkHealth();
+    }
+
+    function startStream() {
+      const btn = document.getElementById('btn-stream');
+      if (streamSource) {
+        streamSource.close();
+        streamSource = null;
+        btn.textContent = '📡 Live Stream (SSE)';
+        btn.classList.remove('danger');
+        logStream('system', 'Stream disconnected.');
+        return;
+      }
+
+      btn.textContent = '⏹ Stop Stream';
+      btn.classList.add('danger');
+      logStream('system', 'Connecting to SSE stream...');
+      streamSource = new EventSource('/stream');
+
+      streamSource.addEventListener('todo', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.items) {
+            renderTodos(data.items);
+            logStream('todo', `Received ${data.items.length} tasks`);
+          }
+        } catch (e) { logStream('agent', event.data); }
+      });
+
+      streamSource.addEventListener('agent_start', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          logStream('agent', `▶ ${data.agent}: ${data.task || 'starting...'}`);
+          // Mark corresponding todo as in-progress
+          for (let i = 0; i < todoItems.length; i++) {
+            if (!todoItems[i].done && todoItems[i].text.toLowerCase().includes((data.agent || '').toLowerCase())) {
+              // Keep it not done yet — will be marked done on agent_done
+            }
+          }
+        } catch (e) { logStream('agent', event.data); }
+      });
+
+      streamSource.addEventListener('agent_done', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          logStream('agent-done', `✓ ${data.agent} done${data.output_file ? ` → ${data.output_file}` : ''}`);
+          // Mark matching todo as done
+          for (let i = 0; i < todoItems.length; i++) {
+            if (!todoItems[i].done) {
+              const agentName = data.agent ? data.agent.toLowerCase() : '';
+              const todoText = todoItems[i].text.toLowerCase();
+              if (agentName.includes('parser') && todoText.includes('parse')) {
+                todoItems[i].done = true;
+              } else if (agentName.includes('tracer') && (todoText.includes('trace') || todoText.includes(data.agent || ''))) {
+                todoItems[i].done = true;
+              }
+            }
+          }
+          renderTodos(todoItems.map(t => t.text));
+          todoItems.forEach(t => { if (t.done) todoItems[todoItems.indexOf(t)] = t; });
+        } catch (e) { logStream('agent-done', event.data); }
+      });
+
+      streamSource.addEventListener('complete', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          evidenceData = data.evidence || [];
+          renderEvidence();
+          if (data.summary) {
+            logStream('system', `✅ Complete: ${data.summary.green_count} green, ${data.summary.yellow_count} yellow, ${data.summary.red_count} red`);
+          }
+          // Mark all todos done
+          todoItems.forEach(t => t.done = true);
+          renderTodos(todoItems.map(t => t.text));
+          // Auto-close stream
+          streamSource.close();
+          streamSource = null;
+          document.getElementById('btn-stream').textContent = '📡 Live Stream (SSE)';
+          document.getElementById('btn-stream').classList.remove('danger');
+          loadEvidence();
+        } catch (e) { logStream('system', event.data); }
+      });
+
+      streamSource.addEventListener('error', (event) => {
+        logStream('error', 'SSE connection error.');
+      });
+
+      streamSource.onerror = () => {
+        logStream('error', 'SSE stream error — connection may be lost.');
+        if (streamSource) { streamSource.close(); streamSource = null; }
+        document.getElementById('btn-stream').textContent = '📡 Live Stream (SSE)';
+        document.getElementById('btn-stream').classList.remove('danger');
+      };
+    }
+
+    function logStream(type, content) {
+      const log = document.getElementById('stream-log');
+      const entry = document.createElement('div');
+      entry.className = 'entry';
+      const time = new Date().toLocaleTimeString();
+      const typeClass = type === 'error' ? 'error' : type === 'agent-done' ? 'agent-done' : type === 'todo' ? 'todo-event' : 'agent';
+      entry.innerHTML = `<span style="color:#475569;">[${time}]</span> <span class="${typeClass}">[${type}]</span> ${content}`;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+      while (log.children.length > 100) log.removeChild(log.firstChild);
+    }
+
+    // Load on page load
+    loadEvidence();
+    checkHealth();
+  </script>
+</body>
+</html>

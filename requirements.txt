@@ -1,0 +1,8 @@
+deepagents
+langchain-deepseek
+pymupdf
+openpyxl
+pandas
+fastapi
+uvicorn
+python-dotenv
