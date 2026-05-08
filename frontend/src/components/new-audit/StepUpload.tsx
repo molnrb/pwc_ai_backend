@@ -1,5 +1,5 @@
-import React from 'react';
-import { Upload, Plus, FileText, Trash2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Upload, Plus, FileText, Trash2, CheckCircle2 } from 'lucide-react';
 import type { PendingUploadFile } from './NewAudit';
 
 const formatSize = (size: number) => {
@@ -22,8 +22,10 @@ interface Props {
 }
 
 export const StepUpload = ({ files, setFiles }: Props) => {
-  const statementInputRef = React.useRef<HTMLInputElement | null>(null);
-  const supportInputRef = React.useRef<HTMLInputElement | null>(null);
+  const statementInputRef = useRef<HTMLInputElement | null>(null);
+  const supportInputRef = useRef<HTMLInputElement | null>(null);
+  const [dragOverStatement, setDragOverStatement] = useState(false);
+  const [dragOverSupport, setDragOverSupport] = useState(false);
 
   const mergeFiles = (selected: FileList | null, replacePdf: boolean) => {
     if (!selected || selected.length === 0) return;
@@ -41,11 +43,21 @@ export const StepUpload = ({ files, setFiles }: Props) => {
     });
   };
 
+  const handleDrop = (e: React.DragEvent, isStatement: boolean) => {
+    e.preventDefault();
+    setDragOverStatement(false);
+    setDragOverSupport(false);
+    mergeFiles(e.dataTransfer.files, isStatement);
+  };
+
+  const statementFile = files.find(f => f.name.toLowerCase().endsWith('.pdf'));
+
   return (
     <div className="space-y-8">
       <h2 className="text-xl font-bold text-white uppercase tracking-tight">Step 1 of 3: Upload Documents</h2>
-      
+
       <div className="space-y-4">
+        {/* Statement PDF Upload */}
         <input
           ref={statementInputRef}
           type="file"
@@ -56,15 +68,31 @@ export const StepUpload = ({ files, setFiles }: Props) => {
             event.target.value = '';
           }}
         />
-        <div 
-          className="border-2 border-dashed border-[#3D3D4E] hover:border-[#E8521A] transition-colors p-16 flex flex-col items-center justify-center gap-4 cursor-pointer rounded-sm bg-[#2C2C3E]/30"
+        <div
+          className={`border-2 border-dashed transition-colors p-12 flex flex-col items-center justify-center gap-4 cursor-pointer rounded-sm ${dragOverStatement ? 'border-[#E8521A] bg-[#E8521A]/5' : 'border-[#3D3D4E] hover:border-[#E8521A] bg-[#2C2C3E]/30'
+            }`}
           onClick={() => statementInputRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setDragOverStatement(true); }}
+          onDragLeave={() => setDragOverStatement(false)}
+          onDrop={(e) => handleDrop(e, true)}
         >
-          <Upload className="w-12 h-12 text-slate-500" />
-          <p className="text-slate-400 font-medium tracking-wide text-center">Drop your ESRS E1 sustainability statement PDF here</p>
-          <p className="text-[10px] uppercase font-bold text-slate-600 tracking-widest">or click to browse</p>
+          {statementFile ? (
+            <>
+              <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+              <p className="text-white font-bold">{statementFile.name}</p>
+              <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">{statementFile.sizeLabel} · Statement PDF</p>
+              <p className="text-[10px] text-slate-600 tracking-wider">Drop a new PDF to replace, or click to change</p>
+            </>
+          ) : (
+            <>
+              <Upload className="w-10 h-10 text-slate-500" />
+              <p className="text-slate-300 font-medium tracking-wide text-center">Drop your ESRS E1 sustainability statement PDF here</p>
+              <p className="text-[10px] uppercase font-bold text-slate-600 tracking-widest">PDF · Required</p>
+            </>
+          )}
         </div>
 
+        {/* Supporting Files Upload */}
         <input
           ref={supportInputRef}
           type="file"
@@ -76,39 +104,53 @@ export const StepUpload = ({ files, setFiles }: Props) => {
             event.target.value = '';
           }}
         />
-        <div className="border-2 border-dashed border-[#3D3D4E] hover:border-[#E8521A] transition-colors p-8 flex flex-col items-center justify-center gap-2 cursor-pointer rounded-sm bg-[#1A1A2E]/50" onClick={() => supportInputRef.current?.click()}>
+        <div
+          className={`border-2 border-dashed transition-colors p-8 flex flex-col items-center justify-center gap-2 cursor-pointer rounded-sm ${dragOverSupport ? 'border-[#E8521A] bg-[#E8521A]/5' : 'border-[#3D3D4E] hover:border-[#E8521A] bg-[#1A1A2E]/50'
+            }`}
+          onClick={() => supportInputRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setDragOverSupport(true); }}
+          onDragLeave={() => setDragOverSupport(false)}
+          onDrop={(e) => handleDrop(e, false)}
+        >
           <div className="flex items-center gap-2 text-slate-500">
             <Plus className="w-5 h-5" />
-            <span className="text-xs uppercase font-bold tracking-widest">Supporting source files (Excel, CSV)</span>
+            <span className="text-xs uppercase font-bold tracking-widest">Supporting source files — Excel, CSV, PDF</span>
           </div>
+          <p className="text-[10px] text-slate-600 tracking-wider">Optional — drag & drop or click to browse</p>
         </div>
       </div>
 
+      {/* File List */}
       {files.length > 0 && (
         <div className="space-y-3">
-          <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Uploaded Files ({files.length})</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Selected Files ({files.length})</p>
+          </div>
           {files.map((f) => (
-            <div key={f.id} className="flex items-center justify-between bg-[#2C2C3E] p-3 border border-[#3D3D4E] rounded-sm">
-              <div className="flex items-center gap-3">
-                <FileText className="w-4 h-4 text-emerald-500" />
-                <span className="text-sm text-slate-300 font-mono">{f.name}</span>
+            <div key={f.id} className="flex items-center justify-between bg-[#2C2C3E] p-3 border border-[#3D3D4E] rounded-sm group hover:border-white/10 transition-colors">
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className={`w-4 h-4 shrink-0 ${f.name.toLowerCase().endsWith('.pdf') ? 'text-emerald-400' : 'text-[#E8521A]'}`} />
+                <span className="text-sm text-slate-300 font-mono truncate">{f.name}</span>
               </div>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFiles((prev) => prev.filter((entry) => entry.id !== f.id));
-                }} 
-                className="text-slate-600 hover:text-red-500 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-[10px] text-slate-600 font-mono">{f.sizeLabel}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFiles((prev) => prev.filter((entry) => entry.id !== f.id));
+                  }}
+                  className="text-slate-600 hover:text-red-500 transition-colors p-1"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
 
       <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">
-        Launch replaces the current backend input workspace with the selected files.
+        One statement PDF required · Supporting source files improve trace accuracy
       </p>
     </div>
   );

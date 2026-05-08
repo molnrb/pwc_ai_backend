@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { StepUpload } from './StepUpload';
@@ -39,22 +39,30 @@ export const NewAudit = ({ onComplete }: { onComplete: (files: File[]) => Promis
       {/* Progress Stepper */}
       <div className="flex items-center justify-between mb-16 relative">
         <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-0.5 bg-[#3D3D4E] z-0" />
-        {[1, 2, 3].map(i => (
-          <div key={i} className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all border-2 ${
-            step >= i ? 'bg-[#E8521A] border-[#E8521A] text-white shadow-[0_0_15px_rgba(232,82,26,0.3)]' : 'bg-[#1A1A2E] border-[#3D3D4E] text-slate-600'
-          }`}>
-            {step > i ? <CheckCircle2 className="w-6 h-6" /> : i}
+        {[
+          { num: 1, label: 'Upload' },
+          { num: 2, label: 'Configure' },
+          { num: 3, label: 'Launch' },
+        ].map(({ num, label }) => (
+          <div key={num} className="flex flex-col items-center gap-2 relative z-10">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all border-2 ${step >= num ? 'bg-[#E8521A] border-[#E8521A] text-white shadow-[0_0_15px_rgba(232,82,26,0.3)]' : 'bg-[#1A1A2E] border-[#3D3D4E] text-slate-600'
+              }`}>
+              {step > num ? <CheckCircle2 className="w-6 h-6" /> : num}
+            </div>
+            <span className={`text-[9px] uppercase font-bold tracking-widest ${step >= num ? 'text-[#E8521A]' : 'text-slate-600'}`}>
+              {label}
+            </span>
           </div>
         ))}
       </div>
 
       <AnimatePresence mode="wait">
         <motion.div
-           key={step}
-           initial={{ opacity: 0, x: 20 }}
-           animate={{ opacity: 1, x: 0 }}
-           exit={{ opacity: 0, x: -20 }}
-           transition={{ duration: 0.2 }}
+          key={step}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.2 }}
         >
           {step === 1 && <StepUpload files={files} setFiles={setFiles} />}
           {step === 2 && <StepConfigure />}

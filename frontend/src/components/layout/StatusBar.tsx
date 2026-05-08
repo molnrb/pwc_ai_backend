@@ -1,4 +1,3 @@
-import React from 'react';
 import { type Evidence, type Summary } from '../../services/api';
 
 interface Props {
@@ -26,10 +25,8 @@ export const StatusBar = ({ evidence, summary, loading }: Props) => (
       </div>
     )}
     <div className="ml-auto hidden xs:flex items-center gap-4">
-      <div className="flex items-center gap-1.5">
-        <span className="opacity-40">API:</span>
-        <span className="text-slate-400">/stream · /audit · /evidence</span>
-      </div>
+      <span className="opacity-40">Atlas Audit Engine</span>
+      <span className="text-slate-400">CSRD E1 · Phase 1</span>
     </div>
   </footer>
 );
