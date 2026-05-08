@@ -8,6 +8,7 @@ Two modes:
 import asyncio
 import json
 import os
+import shutil
 import time
 from pathlib import Path
 from typing import AsyncGenerator
@@ -15,7 +16,7 @@ from typing import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 import uvicorn
@@ -212,6 +213,34 @@ def _collect_evidence_files() -> list:
     return findings
 
 
+def _sanitize_filename(filename: str) -> str:
+    cleaned = Path(filename or '').name
+    if not cleaned:
+        raise HTTPException(status_code=400, detail='Filename is required.')
+    return cleaned
+
+
+def _clear_input_dir() -> None:
+    INPUT_DIR.mkdir(parents=True, exist_ok=True)
+    for existing in INPUT_DIR.iterdir():
+        if existing.is_file():
+            existing.unlink()
+
+
+async def _save_upload(upload: UploadFile) -> dict:
+    filename = _sanitize_filename(upload.filename or '')
+    destination = INPUT_DIR / filename
+
+    with destination.open('wb') as target:
+        shutil.copyfileobj(upload.file, target)
+
+    await upload.close()
+    return {
+        'filename': filename,
+        'size_kb': round(destination.stat().st_size / 1024, 1),
+    }
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────
 
 
@@ -272,6 +301,27 @@ async def get_evidence():
     return JSONResponse({
         "evidence": sorted(findings, key=lambda x: x.get("page", 0)),
         "summary": _compute_summary(findings),
+    })
+
+
+@app.post('/upload')
+async def upload_inputs(files: list[UploadFile] = File(...)):
+    """Replace workspace input files with the uploaded selection."""
+    if not files:
+        raise HTTPException(status_code=400, detail='At least one file is required.')
+
+    INPUT_DIR.mkdir(parents=True, exist_ok=True)
+    _clear_input_dir()
+
+    saved_files = []
+    for upload in files:
+        saved_files.append(await _save_upload(upload))
+
+    return JSONResponse({
+        'status': 'uploaded',
+        'files': saved_files,
+        'input_file_count': len(saved_files),
+        'ready': any(item['filename'].lower().endswith('.pdf') for item in saved_files),
     })
 
 
