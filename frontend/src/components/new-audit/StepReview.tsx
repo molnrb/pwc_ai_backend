@@ -2,12 +2,13 @@ import type { PendingUploadFile } from './NewAudit';
 
 interface Props {
   files: PendingUploadFile[];
+  hasStatement: boolean;
   onComplete: () => void;
   submitting: boolean;
   error: string | null;
 }
 
-export const StepReview = ({ files, onComplete, submitting, error }: Props) => {
+export const StepReview = ({ files, hasStatement, onComplete, submitting, error }: Props) => {
   return (
     <div className="space-y-8">
       <h2 className="text-xl font-bold text-white uppercase tracking-tight">Step 3 of 3: Review & Launch</h2>
@@ -41,9 +42,14 @@ export const StepReview = ({ files, onComplete, submitting, error }: Props) => {
       </div>
 
       <div className="space-y-6">
+        {!hasStatement && (
+          <div className="p-3 bg-amber-400/5 border border-amber-400/30 rounded-sm text-center text-xs text-amber-400 font-medium uppercase tracking-widest">
+            Upload a statement PDF to enable audit launch.
+          </div>
+        )}
         <button
           onClick={onComplete}
-          disabled={submitting}
+          disabled={submitting || !hasStatement}
           className="w-full bg-[#E8521A] hover:bg-[#E8521A]/90 disabled:bg-[#3D3D4E] disabled:text-slate-500 text-white p-6 rounded-sm font-bold uppercase tracking-[0.2em] text-lg shadow-2xl shadow-[#E8521A]/30 active:scale-95 transition-all"
         >
           {submitting ? 'Launching audit...' : 'Launch Audit'}

@@ -4,9 +4,9 @@
     "standard": "ESRS E1 — Climate Change",
     "framework": "EU CSRD",
     "pipeline": "llm-assisted",
-    "parser_mode": "llm_hybrid",
-    "started_at": "2026-05-08T22:29:33.130303+00:00",
-    "completed_at": "2026-05-08T22:29:40.051531+00:00",
+    "parser_mode": "llm",
+    "started_at": "2026-05-08T22:41:03.674326+00:00",
+    "completed_at": "2026-05-08T22:41:11.661328+00:00",
     "total_pages": 15,
     "total_claims_found": 8,
     "total_findings": 8
@@ -46,9 +46,9 @@
   "findings": [
     {
       "data_point": "production_sites",
-      "claim_text": "The company conducts production activities at 3 sites. These facilities are located in Budapest (the\ncompany's headquarters and primary manufacturing hub), GyIr (a specialized facility focused on\nhigh-precision machining for automotive drivetrain components), and Pécs (a dedicated assembly\nand finishing plant serving the renewable energy sector). Together, these three sites form an\nintegrated production network that enables GreenCorp to serve customers across 14 European\ncountries.",
+      "claim_text": "The company conducts production activities at 3 sites.",
       "claimed_value": 3,
-      "unit": "db",
+      "unit": "sites",
       "page": 4,
       "paragraph_idx": 2,
       "flag": "grey",

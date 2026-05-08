@@ -14,7 +14,13 @@ import { uploadInputFiles } from './services/api';
 export default function App() {
   const [view, setView] = useState<'Audit Logs' | 'Dashboard' | 'New Audit'>('Audit Logs');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { evidence, summary, feed, loading, runAudit, startStream, addFeedEntry } = useAtlasData();
+  const { evidence, summary, health, feed, loading, startStream, addFeedEntry } = useAtlasData();
+
+  const launchAuditStream = () => {
+    setView('Audit Logs');
+    addFeedEntry('SYSTEM', 'Starting live audit stream...');
+    startStream();
+  };
 
   const handleAuditComplete = async (files: File[] = []) => {
     if (files.length > 0) {
@@ -23,9 +29,7 @@ export default function App() {
       addFeedEntry('SYSTEM', `Upload complete. ${upload.input_file_count} file(s) ready.`);
     }
 
-    setView('Audit Logs');
-    addFeedEntry('SYSTEM', 'Starting live audit stream...');
-    startStream();
+    launchAuditStream();
   };
 
   return (
@@ -43,13 +47,12 @@ export default function App() {
           evidenceCount={evidence.length}
           redCount={summary?.red_count ?? 0}
           loading={loading}
-          onRunAudit={() => void runAudit()}
-          onStartStream={startStream}
+          onLaunchAudit={launchAuditStream}
           setIsSidebarOpen={setIsSidebarOpen}
         />
 
         <div className="flex-1 flex overflow-hidden">
-          {view === 'Dashboard' && <Dashboard evidence={evidence} summary={summary} feed={feed} />}
+          {view === 'Dashboard' && <Dashboard evidence={evidence} summary={summary} health={health} feed={feed} />}
 
           {view === 'New Audit' && (
             <NewAudit onComplete={handleAuditComplete} />

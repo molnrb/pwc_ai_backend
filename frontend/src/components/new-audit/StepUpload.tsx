@@ -27,6 +27,9 @@ export const StepUpload = ({ files, setFiles }: Props) => {
   const [dragOverStatement, setDragOverStatement] = useState(false);
   const [dragOverSupport, setDragOverSupport] = useState(false);
 
+  const openStatementPicker = () => statementInputRef.current?.click();
+  const openSupportPicker = () => supportInputRef.current?.click();
+
   const mergeFiles = (selected: FileList | null, replacePdf: boolean) => {
     if (!selected || selected.length === 0) return;
 
@@ -50,6 +53,17 @@ export const StepUpload = ({ files, setFiles }: Props) => {
     mergeFiles(e.dataTransfer.files, isStatement);
   };
 
+  const handleDropZoneKeyDown = (event: React.KeyboardEvent, onActivate: () => void) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onActivate();
+    }
+  };
+
+  const removeFile = (fileId: string) => {
+    setFiles((prev) => prev.filter((entry) => entry.id !== fileId));
+  };
+
   const statementFile = files.find(f => f.name.toLowerCase().endsWith('.pdf'));
 
   return (
@@ -68,10 +82,12 @@ export const StepUpload = ({ files, setFiles }: Props) => {
             event.target.value = '';
           }}
         />
-        <div
+        <button
+          type="button"
           className={`border-2 border-dashed transition-colors p-12 flex flex-col items-center justify-center gap-4 cursor-pointer rounded-sm ${dragOverStatement ? 'border-[#E8521A] bg-[#E8521A]/5' : 'border-[#3D3D4E] hover:border-[#E8521A] bg-[#2C2C3E]/30'
             }`}
-          onClick={() => statementInputRef.current?.click()}
+          onClick={openStatementPicker}
+          onKeyDown={(event) => handleDropZoneKeyDown(event, openStatementPicker)}
           onDragOver={(e) => { e.preventDefault(); setDragOverStatement(true); }}
           onDragLeave={() => setDragOverStatement(false)}
           onDrop={(e) => handleDrop(e, true)}
@@ -79,18 +95,18 @@ export const StepUpload = ({ files, setFiles }: Props) => {
           {statementFile ? (
             <>
               <CheckCircle2 className="w-10 h-10 text-emerald-400" />
-              <p className="text-white font-bold">{statementFile.name}</p>
-              <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">{statementFile.sizeLabel} · Statement PDF</p>
-              <p className="text-[10px] text-slate-600 tracking-wider">Drop a new PDF to replace, or click to change</p>
+              <span className="text-white font-bold">{statementFile.name}</span>
+              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">{statementFile.sizeLabel} · Statement PDF</span>
+              <span className="text-[10px] text-slate-600 tracking-wider">Drop a new PDF to replace, or click to change</span>
             </>
           ) : (
             <>
               <Upload className="w-10 h-10 text-slate-500" />
-              <p className="text-slate-300 font-medium tracking-wide text-center">Drop your ESRS E1 sustainability statement PDF here</p>
-              <p className="text-[10px] uppercase font-bold text-slate-600 tracking-widest">PDF · Required</p>
+              <span className="text-slate-300 font-medium tracking-wide text-center">Drop your ESRS E1 sustainability statement PDF here</span>
+              <span className="text-[10px] uppercase font-bold text-slate-600 tracking-widest">PDF · Required</span>
             </>
           )}
-        </div>
+        </button>
 
         {/* Supporting Files Upload */}
         <input
@@ -104,10 +120,12 @@ export const StepUpload = ({ files, setFiles }: Props) => {
             event.target.value = '';
           }}
         />
-        <div
+        <button
+          type="button"
           className={`border-2 border-dashed transition-colors p-8 flex flex-col items-center justify-center gap-2 cursor-pointer rounded-sm ${dragOverSupport ? 'border-[#E8521A] bg-[#E8521A]/5' : 'border-[#3D3D4E] hover:border-[#E8521A] bg-[#1A1A2E]/50'
             }`}
-          onClick={() => supportInputRef.current?.click()}
+          onClick={openSupportPicker}
+          onKeyDown={(event) => handleDropZoneKeyDown(event, openSupportPicker)}
           onDragOver={(e) => { e.preventDefault(); setDragOverSupport(true); }}
           onDragLeave={() => setDragOverSupport(false)}
           onDrop={(e) => handleDrop(e, false)}
@@ -116,8 +134,8 @@ export const StepUpload = ({ files, setFiles }: Props) => {
             <Plus className="w-5 h-5" />
             <span className="text-xs uppercase font-bold tracking-widest">Supporting source files — Excel, CSV, PDF</span>
           </div>
-          <p className="text-[10px] text-slate-600 tracking-wider">Optional — drag & drop or click to browse</p>
-        </div>
+          <span className="text-[10px] text-slate-600 tracking-wider">Optional — drag & drop or click to browse</span>
+        </button>
       </div>
 
       {/* File List */}
@@ -135,10 +153,8 @@ export const StepUpload = ({ files, setFiles }: Props) => {
               <div className="flex items-center gap-3 shrink-0">
                 <span className="text-[10px] text-slate-600 font-mono">{f.sizeLabel}</span>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setFiles((prev) => prev.filter((entry) => entry.id !== f.id));
-                  }}
+                  type="button"
+                  onClick={() => removeFile(f.id)}
                   className="text-slate-600 hover:text-red-500 transition-colors p-1"
                 >
                   <Trash2 className="w-4 h-4" />

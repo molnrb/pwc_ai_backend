@@ -74,6 +74,35 @@ export interface UploadResult {
   ready: boolean;
 }
 
+export interface AuditMetadata {
+  document: string;
+  standard: string;
+  framework: string;
+  pipeline: string;
+  parser_mode: string;
+  started_at: string;
+  completed_at: string;
+  total_pages: number;
+  total_claims_found: number;
+  total_findings: number;
+}
+
+export interface DocumentInventoryItem {
+  filename: string;
+  type: string;
+  size_kb: number;
+  role: string;
+}
+
+export interface AuditReport {
+  audit_metadata: AuditMetadata;
+  document_inventory: DocumentInventoryItem[];
+  findings: Evidence[];
+  summary: Summary;
+  red_flags: Summary['red_flags'];
+  review_required: boolean;
+}
+
 // ── REST endpoints ──────────────────────────────────────────────────────
 
 export async function fetchHealth(): Promise<HealthStatus> {
@@ -113,6 +142,37 @@ export async function uploadInputFiles(files: File[]): Promise<UploadResult> {
 
   if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
   return resp.json();
+}
+
+export async function fetchReport(): Promise<AuditReport> {
+  const resp = await fetch('/report');
+  if (!resp.ok) {
+    let errorMessage = `Report fetch failed: ${resp.status}`;
+    try {
+      const payload = await resp.json() as { error?: string };
+      if (typeof payload.error === 'string' && payload.error) {
+        errorMessage = payload.error;
+      }
+    } catch {
+      // Fall back to the HTTP status when the error payload is unavailable.
+    }
+    throw new Error(errorMessage);
+  }
+  return resp.json();
+}
+
+export async function downloadReportPackage(): Promise<AuditReport> {
+  const report = await fetchReport();
+  const fileDate = new Date().toISOString().slice(0, 10);
+  const downloadName = `atlas-evidence-package-${fileDate}.json`;
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = downloadName;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  return report;
 }
 
 // ── SSE stream ──────────────────────────────────────────────────────────
