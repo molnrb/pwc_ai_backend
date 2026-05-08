@@ -11,7 +11,7 @@ MODEL = os.environ.get("TRACER_MODEL", "deepseek-chat")
 
 def create_tracer_subagent():
     """Create the Tracer subagent configured with DeepSeek."""
-    model = ChatDeepSeek(model=MODEL, model_kwargs={"thinking": None})
+    model = ChatDeepSeek(model=MODEL, disabled_params={"thinking": None})
     return create_deep_agent(
         model=model,
         tools=[read_excel_cell, read_excel_summary, count_csv_rows, validate_claim, compute_total, write_evidence],

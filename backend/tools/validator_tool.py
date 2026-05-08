@@ -28,7 +28,7 @@ def validate_claim(claimed_value: float, source_value: float, unit: str = "") ->
 
     deviation = abs(claimed_value - source_value) / abs(source_value)
 
-    if deviation < 0.01:
+    if deviation < 0.005:
         flag = "green"
     elif deviation <= 0.05:
         flag = "yellow"
