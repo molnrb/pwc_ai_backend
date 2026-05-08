@@ -17,11 +17,26 @@ export const NewAudit = ({ onComplete }: { onComplete: (files: File[]) => Promis
   const [files, setFiles] = useState<PendingUploadFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasStatement = files.some((entry) => entry.name.toLowerCase().endsWith('.pdf'));
 
-  const handleNext = () => setStep(s => Math.min(3, s + 1));
+  const handleNext = () => {
+    if (step === 1 && !hasStatement) {
+      setError('Upload the sustainability statement PDF before continuing.');
+      return;
+    }
+
+    setError(null);
+    setStep((currentStep) => Math.min(3, currentStep + 1));
+  };
+
   const handlePrev = () => setStep(s => Math.max(1, s - 1));
 
   const handleComplete = async () => {
+    if (!hasStatement) {
+      setError('A statement PDF is required before launching the audit.');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -66,7 +81,7 @@ export const NewAudit = ({ onComplete }: { onComplete: (files: File[]) => Promis
         >
           {step === 1 && <StepUpload files={files} setFiles={setFiles} />}
           {step === 2 && <StepConfigure />}
-          {step === 3 && <StepReview files={files} onComplete={handleComplete} submitting={submitting} error={error} />}
+          {step === 3 && <StepReview files={files} hasStatement={hasStatement} onComplete={handleComplete} submitting={submitting} error={error} />}
         </motion.div>
       </AnimatePresence>
 
@@ -77,11 +92,27 @@ export const NewAudit = ({ onComplete }: { onComplete: (files: File[]) => Promis
           </button>
         )}
         {step < 3 && (
-          <button onClick={handleNext} className="ml-auto flex items-center gap-2 text-[#E8521A] hover:text-white transition-colors uppercase font-bold text-xs tracking-widest">
+          <button
+            onClick={handleNext}
+            disabled={step === 1 && !hasStatement}
+            className="ml-auto flex items-center gap-2 text-[#E8521A] hover:text-white disabled:text-slate-600 disabled:hover:text-slate-600 transition-colors uppercase font-bold text-xs tracking-widest"
+          >
             Next <ChevronRight className="w-4 h-4" />
           </button>
         )}
       </div>
+
+      {step === 1 && !hasStatement && (
+        <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-widest text-amber-400">
+          Statement PDF required before configuration and launch
+        </p>
+      )}
+
+      {error && step !== 3 && (
+        <div className="mt-4 p-3 bg-red-400/5 border border-red-400/30 rounded-sm text-center text-xs text-red-400 font-medium">
+          {error}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,13 +1,21 @@
 """Atlas orchestrator — main coordination logic using deepagents."""
 
 import os
+
 from deepagents import create_deep_agent
+from dotenv import load_dotenv
 from langchain_deepseek import ChatDeepSeek
+
 from tools.pdf_tools import extract_page_text, get_pdf_page_count, write_claims
 from tools.excel_tools import read_excel_cell, read_excel_summary, count_csv_rows, write_evidence
 from tools.validator_tool import validate_claim, compute_total
 
+load_dotenv()
+
 MODEL = os.environ.get("ORCHESTRATOR_MODEL", "deepseek-chat")
+DEEPSEEK_API_BASE = os.environ.get("DEEPSEEK_API_BASE") or None
+
+_atlas_orchestrator = None
 
 
 def _make_model():
@@ -15,7 +23,15 @@ def _make_model():
         model=MODEL,
         temperature=0,
         max_tokens=4096,
+    base_url=DEEPSEEK_API_BASE,
+    timeout=60.0,
+    max_retries=2,
+    disabled_params={"thinking": None},
     )
+
+def is_llm_available() -> bool:
+    """Return whether the DeepSeek client can be constructed from the current env."""
+    return bool(os.environ.get("DEEPSEEK_API_KEY"))
 
 
 PARSER_SYSTEM_PROMPT = """You are a CSRD Audit Parser subagent.
@@ -162,5 +178,20 @@ def create_atlas_orchestrator():
     )
 
 
-# Singleton instance for module-level import
-atlas = create_atlas_orchestrator()
+def get_atlas_orchestrator():
+    """Lazily construct the orchestrator so imports do not fail without env setup."""
+    global _atlas_orchestrator
+    if _atlas_orchestrator is None:
+        _atlas_orchestrator = create_atlas_orchestrator()
+    return _atlas_orchestrator
+
+
+def run_live_llm_audit(progress_callback=None, pdf_filename: str = "atlas_sustainability_statement.pdf") -> dict:
+    """Run the live audit using the LLM-assisted parser and deterministic trace/validate steps."""
+    from pipeline import run_full_audit
+
+    return run_full_audit(
+        pdf_filename=pdf_filename,
+        progress_callback=progress_callback,
+        parser_mode="llm",
+    )

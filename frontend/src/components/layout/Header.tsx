@@ -5,17 +5,17 @@ interface Props {
   evidenceCount: number;
   redCount: number;
   loading: boolean;
-  onRunAudit: () => void;
-  onStartStream: () => void;
+  onLaunchAudit: () => void;
   setIsSidebarOpen: (v: boolean) => void;
 }
 
-export const Header = ({ view, evidenceCount, redCount, loading, onRunAudit, onStartStream, setIsSidebarOpen }: Props) => {
-  const statusDotClass = loading
-    ? 'bg-blue-400 animate-pulse'
-    : redCount > 0
-      ? 'bg-red-400'
-      : 'bg-emerald-400';
+export const Header = ({ view, evidenceCount, redCount, loading, onLaunchAudit, setIsSidebarOpen }: Props) => {
+  let statusDotClass = 'bg-emerald-400';
+  if (loading) {
+    statusDotClass = 'bg-blue-400 animate-pulse';
+  } else if (redCount > 0) {
+    statusDotClass = 'bg-red-400';
+  }
 
   return (
     <header className="h-16 border-b border-[#3D3D4E] flex items-center justify-between px-6 bg-[#1A1A2E]/50 backdrop-blur-sm z-30 shrink-0">
@@ -35,13 +35,13 @@ export const Header = ({ view, evidenceCount, redCount, loading, onRunAudit, onS
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
-        <button onClick={onStartStream} className="flex items-center gap-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-4 py-1.5 rounded-sm font-bold text-xs uppercase tracking-wide transition-colors">
+        <button
+          onClick={onLaunchAudit}
+          disabled={loading}
+          className="flex items-center gap-2 bg-[#E8521A] hover:bg-[#E8521A]/90 disabled:bg-[#3D3D4E] disabled:text-slate-500 text-white px-4 py-1.5 rounded-sm font-bold text-xs uppercase tracking-wide transition-colors"
+        >
           <Play className="w-3.5 h-3.5 fill-current" />
-          <span className="hidden xs:inline">Live Stream</span>
-        </button>
-        <button onClick={onRunAudit} className="flex items-center gap-2 bg-[#E8521A] hover:bg-[#E8521A]/90 text-white px-4 py-1.5 rounded-sm font-bold text-xs uppercase tracking-wide transition-colors">
-          <Play className="w-3.5 h-3.5 fill-current" />
-          <span className="hidden xs:inline">Run Audit</span>
+          <span className="hidden xs:inline">{loading ? 'Audit Running' : 'Run Live Audit'}</span>
         </button>
       </div>
     </header>
