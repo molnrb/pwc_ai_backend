@@ -1,0 +1,6 @@
+{
+  "name": "Atlas Audit Engine",
+  "description": "A high-fidelity audit compliance dashboard for CSRD reporting with real-time agent trace monitoring and regulatory extract validation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
