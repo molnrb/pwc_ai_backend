@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { StatusBar } from './components/layout/StatusBar';
 import { RegulatoryExtracts } from './components/audit/RegulatoryExtracts';
 import { SourceTraceTable } from './components/audit/SourceTraceTable';
+import { ReviewBanner } from './components/audit/ReviewBanner';
 import { AgentFeed } from './components/audit/AgentFeed';
 import { Dashboard } from './components/dashboard/Dashboard';
 import { NewAudit } from './components/new-audit/NewAudit';
@@ -11,7 +12,7 @@ import { useAtlasData } from './hooks/useAtlasData';
 import { uploadInputFiles } from './services/api';
 
 export default function App() {
-  const [view, setView] = useState<'Dashboard' | 'Audit Logs' | 'Settings' | 'New Audit'>('Audit Logs');
+  const [view, setView] = useState<'Audit Logs' | 'Dashboard' | 'New Audit'>('Audit Logs');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { evidence, summary, feed, loading, runAudit, startStream, addFeedEntry } = useAtlasData();
 
@@ -29,35 +30,26 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-[#1A1A2E] text-slate-300 font-sans selection:bg-[#E8521A] selection:text-white overflow-hidden">
-      <Sidebar 
-        view={view} 
-        setView={setView} 
-        isSidebarOpen={isSidebarOpen} 
-        setIsSidebarOpen={setIsSidebarOpen} 
+      <Sidebar
+        view={view}
+        setView={setView}
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
       />
 
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <Header 
+        <Header
           view={view}
           evidenceCount={evidence.length}
           redCount={summary?.red_count ?? 0}
           loading={loading}
           onRunAudit={() => void runAudit()}
           onStartStream={startStream}
-          setIsSidebarOpen={setIsSidebarOpen} 
+          setIsSidebarOpen={setIsSidebarOpen}
         />
 
         <div className="flex-1 flex overflow-hidden">
           {view === 'Dashboard' && <Dashboard evidence={evidence} summary={summary} feed={feed} />}
-          
-          {view === 'Settings' && (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#1A1A2E]">
-              <div className="text-center space-y-2">
-                <p className="text-lg font-bold text-white uppercase tracking-tight">No configuration required</p>
-                <p className="text-sm text-slate-400">Atlas runs automatically with optimal defaults</p>
-              </div>
-            </div>
-          )}
 
           {view === 'New Audit' && (
             <NewAudit onComplete={handleAuditComplete} />
@@ -67,7 +59,8 @@ export default function App() {
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
               <RegulatoryExtracts evidence={evidence} />
               <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-                <SourceTraceTable evidence={evidence} />
+                <SourceTraceTable evidence={evidence} summary={summary} />
+                <ReviewBanner evidence={evidence} />
                 <AgentFeed feed={feed} />
               </div>
             </div>

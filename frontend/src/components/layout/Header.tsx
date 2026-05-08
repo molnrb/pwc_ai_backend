@@ -1,4 +1,3 @@
-import React from 'react';
 import { Menu, Play } from 'lucide-react';
 
 interface Props {

@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AGENT_COLORS } from '../../constants/esrs';
 
@@ -22,25 +21,30 @@ export const AgentFeed = ({ feed }: Props) => {
         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Live Agent Feed</span>
         <span className="ml-auto text-[9px] font-mono text-slate-600">{feed.length} entries</span>
       </div>
-      
+
       <div className="flex-1 p-4 font-mono text-[11px] overflow-y-auto custom-scrollbar bg-black/20 leading-[28px]">
         <AnimatePresence mode="popLayout">
-          {feed.slice(0, 30).map((entry, idx) => (
-            <motion.div 
-              key={idx}
-              initial={{ opacity: 0, x: -5 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex gap-3 group"
-            >
-              <span style={{ color: getAgentColor(entry.agent) }}>[{entry.agent}]</span>
-              <span className="text-slate-600 whitespace-nowrap">· {entry.timestamp} ·</span>
-              <span className="text-slate-300 group-hover:text-white transition-colors">{entry.message}</span>
-            </motion.div>
-          ))}
+          {feed.slice(0, 30).map((entry, idx) => {
+            const isError = entry.agent === 'ERROR' || entry.agent === 'VALIDATOR';
+            const isRedFlag = entry.message.toLowerCase().includes('red flag') || entry.message.toLowerCase().includes('mismatch') || entry.message.toLowerCase().includes('discrepancy');
+
+            return (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, x: -5 }}
+                animate={{ opacity: 1, x: 0 }}
+                className={`flex gap-3 group ${isRedFlag ? 'bg-red-400/5 -mx-4 px-4 border-l-2 border-red-400/40' : ''}`}
+              >
+                <span style={{ color: getAgentColor(entry.agent) }}>[{entry.agent}]</span>
+                <span className="text-slate-600 whitespace-nowrap">· {entry.timestamp} ·</span>
+                <span className={`${isRedFlag ? 'text-red-300 font-bold' : 'text-slate-300'} group-hover:text-white transition-colors`}>{entry.message}</span>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
         {feed.length === 0 && (
           <div className="flex items-center justify-center h-full text-slate-600 text-[10px] uppercase tracking-widest">
-            No agent activity yet
+            Waiting for agent activity...
           </div>
         )}
       </div>

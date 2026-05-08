@@ -1,12 +1,11 @@
-import React from 'react';
-import { LayoutDashboard, FileText, Settings, Activity, Plus, X } from 'lucide-react';
+import { LayoutDashboard, FileText, Activity, Plus, X } from 'lucide-react';
 
 export const Sidebar = ({ view, setView, isSidebarOpen, setIsSidebarOpen }: any) => {
   return (
     <>
       {/* Mobile Backdrop */}
       {isSidebarOpen && (
-        <div 
+        <div
           onClick={() => setIsSidebarOpen(false)}
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
         />
@@ -35,32 +34,29 @@ export const Sidebar = ({ view, setView, isSidebarOpen, setIsSidebarOpen }: any)
 
           <nav className="space-y-1">
             {[
-              { name: 'Dashboard', icon: LayoutDashboard },
-              { name: 'Audit Logs', icon: FileText },
-              { name: 'Settings', icon: Settings },
+              { name: 'Audit Logs', icon: FileText, label: 'Audit Logs' },
+              { name: 'Dashboard', icon: LayoutDashboard, label: 'Dashboard' },
             ].map((item) => (
               <button
                 key={item.name}
                 onClick={() => { setView(item.name); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-medium transition-all ${
-                  view === item.name 
-                    ? 'bg-white/5 text-white border-l-[3px] border-[#E8521A]' 
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-medium transition-all ${view === item.name
+                    ? 'bg-white/5 text-white border-l-[3px] border-[#E8521A]'
                     : 'text-slate-500 hover:text-slate-300 hover:bg-white/2'
-                }`}
+                  }`}
               >
                 <item.icon className="w-4 h-4" />
-                {item.name}
+                {item.label}
               </button>
             ))}
           </nav>
         </div>
 
         <div className="mt-auto p-4">
-          <button 
+          <button
             onClick={() => { setView('New Audit'); setIsSidebarOpen(false); }}
-            className={`w-full flex items-center justify-center gap-2 py-3 rounded-sm font-bold text-sm tracking-wide transition-all active:scale-95 uppercase ${
-              view === 'New Audit' ? 'bg-white/10 text-white' : 'bg-[#E8521A] hover:bg-[#E8521A]/90 text-white'
-            }`}
+            className={`w-full flex items-center justify-center gap-2 py-3 rounded-sm font-bold text-sm tracking-wide transition-all active:scale-95 uppercase ${view === 'New Audit' ? 'bg-white/10 text-white' : 'bg-[#E8521A] hover:bg-[#E8521A]/90 text-white'
+              }`}
           >
             <Plus className="w-4 h-4" />
             New Audit

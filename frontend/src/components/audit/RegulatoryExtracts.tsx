@@ -1,4 +1,3 @@
-import React from 'react';
 import { AuditCard } from './AuditCard';
 import { type Evidence } from '../../services/api';
 
@@ -13,7 +12,7 @@ export const RegulatoryExtracts = ({ evidence }: Props) => {
         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Regulatory Extracts</span>
         <span className="text-[10px] font-mono text-slate-500">{evidence.length} TOTAL</span>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 p-2">
         {evidence.map((item) => (
           <AuditCard key={`${item.data_point}-${item.page}`} extract={item} />
