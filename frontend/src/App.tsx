@@ -23,7 +23,8 @@ export default function App() {
     }
 
     setView('Audit Logs');
-    await runAudit();
+    addFeedEntry('SYSTEM', 'Starting live audit stream...');
+    startStream();
   };
 
   return (

@@ -7,6 +7,35 @@ interface FeedEntry {
   message: string;
 }
 
+function formatAgentProgress(data: Record<string, unknown>): string {
+  if (typeof data.message === 'string' && data.message) return data.message;
+
+  const counters = ['green', 'yellow', 'red', 'grey']
+    .filter((key) => typeof data[key] === 'number')
+    .map((key) => `${data[key] as number} ${key}`);
+  if (counters.length > 0) return counters.join(' • ');
+
+  if (typeof data.data_point === 'string') {
+    const parts = [data.data_point];
+    if (typeof data.claimed_value === 'number' || typeof data.claimed_value === 'string') {
+      parts.push(String(data.claimed_value));
+    }
+    if (typeof data.unit === 'string' && data.unit) parts.push(data.unit);
+    if (typeof data.progress === 'string' && data.progress) parts.push(`(${data.progress})`);
+    return parts.join(' ');
+  }
+
+  if (typeof data.progress === 'string') return data.progress;
+  return 'In progress';
+}
+
+function formatAgentDone(data: Record<string, unknown>): string {
+  if (typeof data.message === 'string' && data.message) return data.message;
+  if (typeof data.claims_found === 'number') return `${data.claims_found} claims extracted`;
+  if (typeof data.findings === 'number') return `${data.findings} findings completed`;
+  return 'Done';
+}
+
 export function useAtlasData() {
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -89,10 +118,10 @@ export function useAtlasData() {
           addFeedEntry('ORCHESTRATOR', `${(event.data as any).agent}: ${(event.data as any).task}`);
           break;
         case 'agent_progress':
-          addFeedEntry((event.data as any).agent || 'AGENT', String((event.data as any).status || ''));
+          addFeedEntry((event.data as any).agent || 'AGENT', formatAgentProgress(event.data));
           break;
         case 'agent_done':
-          addFeedEntry((event.data as any).agent || 'AGENT', `Done${(event.data as any).output ? ' → ' + (event.data as any).output : ''}`);
+          addFeedEntry((event.data as any).agent || 'AGENT', formatAgentDone(event.data));
           break;
         case 'finding':
           addFeedEntry((event.data as any).agent || 'AGENT', String((event.data as any).message || 'Finding recorded'));

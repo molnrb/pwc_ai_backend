@@ -11,7 +11,7 @@
   {
     "data_point": "scope1_emission",
     "claimed_value": 1850,
-    "unit": "tCO2e",
+    "unit": "tonnes CO2 equivalent",
     "page": 6,
     "paragraph_idx": 3,
     "source_hint": "energia_2024.xlsx",
@@ -20,7 +20,7 @@
   {
     "data_point": "scope2_emission",
     "claimed_value": 4200,
-    "unit": "tCO2e",
+    "unit": "tonnes CO2 equivalent",
     "page": 7,
     "paragraph_idx": 3,
     "source_hint": "energia_2024.xlsx",
@@ -29,7 +29,7 @@
   {
     "data_point": "scope1_scope2_total",
     "claimed_value": 6050,
-    "unit": "tCO2e",
+    "unit": "tonnes CO2 equivalent",
     "page": 7,
     "paragraph_idx": 7,
     "source_hint": "energia_2024.xlsx",
@@ -38,7 +38,7 @@
   {
     "data_point": "scope3_emission",
     "claimed_value": 18400,
-    "unit": "tCO2e",
+    "unit": "tonnes CO2 equivalent",
     "page": 8,
     "paragraph_idx": 3,
     "source_hint": "scope3_szallito.xlsx",
@@ -51,24 +51,24 @@
     "page": 9,
     "paragraph_idx": 4,
     "source_hint": "energia_2024.xlsx",
-    "claim_text": "The share of renewable energy in total energy consumption was 67%. This metric includes\nboth the renewable portion of grid electricity (backed by GOs) and on-site solar generation,\ncalculated as the total renewable energy consumed divided by total energy consumption\nacross all energy carriers (electricity, natural gas, and vehicle fuels)."
+    "claim_text": "The share of renewable energy in total energy consumption was 67%."
   },
   {
     "data_point": "headcount",
     "claimed_value": 2340,
-    "unit": "fő",
+    "unit": "employees",
     "page": 10,
     "paragraph_idx": 2,
     "source_hint": "hr_export_2024.csv",
-    "claim_text": "The total headcount as of December 31, 2024 was 2,340 employees. This figure\nrepresents all permanent full-time and part-time employees across the company's three\nproduction \nsites \nand \nthe \nBudapest \nheadquarters, \nincluding \nemployees \non\nmaternity/paternity leave and long-term sick leave. Temporary agency workers and\nindependent contractors are excluded from this figure and reported separately under our\ncontingent workforce disclosure."
+    "claim_text": "The total headcount as of December 31, 2024 was 2,340 employees."
   },
   {
     "data_point": "training_participants",
     "claimed_value": 1240,
-    "unit": "fő",
+    "unit": "employees",
     "page": 11,
     "paragraph_idx": 2,
     "source_hint": "unknown",
-    "claim_text": "The number of participants in training programs was 1,240 employees. This figure\nrepresents unique employees who participated in at least one formal training activity during\nthe 2024 calendar year, including both internal training sessions (conducted by our\nin-house training team and experienced technical staff) and external training programs\n(provided by accredited training institutions, equipment suppliers, and professional bodies).\nAn employee is counted once regardless of the number of training activities they\nparticipated in during the year."
+    "claim_text": "The number of participants in training programs was 1,240 employees."
   }
 ]

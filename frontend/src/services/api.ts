@@ -18,6 +18,8 @@ export interface Evidence {
   source_cell: string | null;
   deviation_pct: number | null;
   explanation: string;
+  paragraph_idx?: number;
+  review_required?: boolean;
 }
 
 export interface Summary {
@@ -26,6 +28,8 @@ export interface Summary {
   red_count: number;
   grey_count: number;
   total: number;
+  material_red_count?: number;
+  review_required?: boolean;
   red_flags: { data_point: string; claimed: number; actual: number; deviation_pct: number; explanation: string }[];
   verdict: string;
   materiality_note: string;
