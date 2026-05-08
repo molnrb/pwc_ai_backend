@@ -125,6 +125,662 @@ Tulajdon:
 5. demo script
 6. pitch narrative es slide-ok
 
+## Minden lenyegi dontes elore meghozva
+
+Itt NINCSENEK nyitott architekturalis kerdesek. A hackathon alatt nem tervezunk tovabb, hanem vegrehajtunk.
+
+### Vegleges technikai dontesek
+
+1. Nem epitunk teljes LangGraph rendszert a hackathon alatt.
+2. A jelenlegi `backend/pipeline.py` marad a futo mag, de agentic workflow-kent lesz dramaturgiailag es API/SSE szinten szetbontva.
+3. A backend orchestrator a hackathonon nem full workflow engine lesz, hanem egy konnyu koordinacios reteg es event producer.
+4. A Parser lehet LLM-es vagy deterministic fallback, de a demo dataseten garantaltan stabilan kell mukodnie.
+5. A Tracer elsosorban deterministic source resolution lesz, nem altalanos szemantikus keresorendszer.
+6. A Validator teljesen deterministic marad.
+7. A Reporter a hackathonon JSON evidence package + UI summary lesz. Nem epitunk teljes annotalt PDF exportot.
+8. A review flow a hackathonon UI-driven lesz. Nem epitunk teljes audit approval state machine-t.
+9. A tamogatott disclosure csak E1.
+10. A tamogatott dokumentumok csak: statement PDF, Excel, CSV, optional invoice/supporting PDF.
+11. A demo csak egy fix, elore osszerakott dokumentumcsomagra lesz optimalizalva.
+12. A frontenden a fo demo-nezet az `Audit Logs` marad, ide kerul minden ero.
+13. A `New Audit` csak upload + launch szerepet tol be, nem lesz belole teljes konfiguracios wizard.
+14. A siker definicioja: stabil 3 perces demo, nem altalanos platform.
+
+### Vegleges funkciok a demo buildben
+
+Ezeknek keszen kell lenniuk:
+
+1. File upload mukodik.
+2. Audit inditas mukodik.
+3. Live workflow feed mutatja a stage-eket.
+4. Parser / Tracer / Validator szerepkor latszik a UI-ban.
+5. Legalabb 5 claim jelenik meg.
+6. Legalabb 3 findinghoz konkret source trace van.
+7. Legalabb 2 red flag biztosan kijon.
+8. Review required blokk latszik.
+9. Evidence package JSON elerheto.
+10. Demo narrativaba illeszkedo summary latszik.
+
+### Amit biztosan nem csinalunk meg
+
+1. Nem keszitunk uj adatmodellt SQLite-tal.
+2. Nem keszitunk vector DB integraciot.
+3. Nem keszitunk altalanos schema inference motort.
+4. Nem keszitunk production quality review workflow backendet.
+5. Nem keszitunk E2/S1/G1 tamogatast.
+6. Nem keszitunk OCR pipeline-t.
+
+## Vegrehajtasi szabalyok
+
+1. Ember A csak backendhez nyul, kiveve ha handshake miatt pici frontendes schema update kell.
+2. Ember B csak frontendhez es pitch anyaghoz nyul, kiveve ha sample JSON-t kell ellenorizni.
+3. Barmilyen schema valtozas elott Ember A eloszor rogzit egy mintakimenetet, es azt atadja Ember B-nek.
+4. Nincs improvizalt feature addicio a 11. ora utan.
+5. A 14. ora utan csak polish, pitch es blocker fix.
+
+## Fix fajlfelelosseg
+
+### Ember A altal modositott fajlok
+
+1. `backend/api.py`
+2. `backend/pipeline.py`
+3. `backend/orchestrator.py`
+4. `backend/tools/validator_tool.py`
+5. `backend/tools/pdf_tools.py` csak ha muszaj
+6. `backend/tools/excel_tools.py` csak ha muszaj
+7. `backend/workspace/*` demo inputok es kimenetek
+
+### Ember B altal modositott fajlok
+
+1. `frontend/src/hooks/useAtlasData.ts`
+2. `frontend/src/services/api.ts`
+3. `frontend/src/App.tsx`
+4. `frontend/src/components/audit/AgentFeed.tsx`
+5. `frontend/src/components/audit/SourceTraceTable.tsx`
+6. `frontend/src/components/audit/RegulatoryExtracts.tsx`
+7. `frontend/src/components/dashboard/Dashboard.tsx`
+8. `frontend/src/components/new-audit/*`
+9. `frontend/src/components/layout/*` csak ha muszaj
+
+## Ember A - konkret vegrehajtasi backlog
+
+Ez a lista mar vegleges. Ember A ennek sorrendjeben halad. Nem kell ujratervezni, csak leirni a kodot.
+
+### A0 - demo dataset lock
+
+Celpont:
+
+1. Vegleges demo input csomag legyen.
+2. Garantalt legyen benne legalabb 2 red flag.
+
+Teendo:
+
+1. Ellenorizze a `backend/workspace/input` tartalmat.
+2. Ellenorizze, hogy a jelenlegi inputokbol ugyanaz a finding keszlet jon ki minden futasnal.
+3. Ha kell, modositson a demo file-okon vagy a deterministic mappingen, hogy a red flag-ek fixen kijojjenek.
+
+Elfogadasi kriterium:
+
+1. ugyanarra a dokumentumcsomagra ugyanaz a 9 finding jon vissza
+2. legalabb 2 red flag stabil
+
+### A1 - vegleges event taxonomy a backendben
+
+Celpont:
+
+Az SSE feed ne technikai zaj legyen, hanem demo-kompatibilis audit workflow.
+
+Fajlok:
+
+1. `backend/api.py`
+2. opcionaalisan `backend/pipeline.py`
+
+Teendo:
+
+1. Hozzon letre fix event-nevlistat.
+2. A live es mock oldalon ugyanazokat a szemantikai stage-eket adja vissza.
+3. Az uzenetek emberileg ertelmesek legyenek.
+
+Vegleges event lista:
+
+1. `status`
+2. `phase`
+3. `todo`
+4. `agent_start`
+5. `agent_progress`
+6. `agent_done`
+7. `finding`
+8. `complete`
+9. `error`
+
+Vegleges phase-ek:
+
+1. `catalog_inputs`
+2. `build_audit_plan`
+3. `parse_claims`
+4. `trace_sources`
+5. `validate_findings`
+6. `build_report`
+
+Elfogadasi kriterium:
+
+1. mock es live futasnal is ugyanaz a workflow dramaturgia latszik
+2. frontend oldalon nem kell kulon logikat irni a mock es live szetkezelesere
+
+### A2 - pipeline stage-ek explicit szetbontasa
+
+Celpont:
+
+A jelenlegi fix pipeline maradjon, de latszodjon rajta a parser / tracer / validator bontas.
+
+Fajl:
+
+1. `backend/pipeline.py`
+
+Teendo:
+
+1. A `run_full_audit` belsejeben nevezze kulon blokkra a lepeseket.
+2. Minden blokk kuldjon kulon progress callback eventet.
+3. A claim extraction stage parser-kent legyen cimkezve.
+4. A trace stage tracer-kent legyen cimkezve.
+5. A deterministic math validator-kent legyen cimkezve.
+
+Elfogadasi kriterium:
+
+1. a live streambol egyertelmu, mikor dolgozik a parser, tracer, validator
+
+### A3 - evidence schema veglegesitese
+
+Celpont:
+
+Minden finding ugyanazt a szerkezetet kovesse.
+
+Fajlok:
+
+1. `backend/pipeline.py`
+2. `backend/api.py`
+
+Vegleges finding schema:
+
+1. `data_point`
+2. `claim_text`
+3. `claimed_value`
+4. `source_value`
+5. `unit`
+6. `source_file`
+7. `source_sheet`
+8. `source_cell`
+9. `deviation_pct`
+10. `flag`
+11. `explanation`
+12. `page`
+13. `paragraph_idx`
+14. `review_required`
+
+Teendo:
+
+1. Minden finding tartalmazza a fenti mezoket.
+2. Missing source eseten is maradjon ervenyes a schema.
+3. A `review_required` legyen `true`, ha `flag == red`.
+
+Elfogadasi kriterium:
+
+1. frontend egy schema szerint tud renderelni mindent
+
+### A4 - missing evidence kezelese
+
+Celpont:
+
+Ha nincs source, az ne nema hiba legyen, hanem bemutathato finding.
+
+Fajlok:
+
+1. `backend/pipeline.py`
+2. ha kell `backend/tools/*`
+
+Teendo:
+
+1. Source nelkul ne torjon a pipeline.
+2. Keszitsen explicit grey findingot.
+3. Az explanation egyertelmuen mondja ki, hogy manual verification kell.
+
+Elfogadasi kriterium:
+
+1. a UI-ban a missing evidence ugyanolyan findingkent latszik
+
+### A5 - report JSON rendbetetele
+
+Celpont:
+
+Legyen kezbe veheto audit package.
+
+Fajl:
+
+1. `backend/pipeline.py`
+
+Vegleges report szerkezet:
+
+1. `audit_metadata`
+2. `document_inventory`
+3. `findings`
+4. `summary`
+5. `red_flags`
+6. `review_required`
+
+Teendo:
+
+1. `audit_metadata` tartalmazza a dokumentum nevet, idot, total pages, total claims, total findings.
+2. `document_inventory` sorolja fel a bemeneti file-okat.
+3. `summary` tartalmazza a countokat es a verdictet.
+4. `red_flags` kulon tomb legyen.
+5. `review_required` legyen top-level bool.
+
+Elfogadasi kriterium:
+
+1. a report JSON demonstralhato mint audit evidence package
+
+### A6 - evidence package endpoint veglegesitese
+
+Celpont:
+
+A frontend es a demo is le tudja kerni a teljes audit package-et.
+
+Fajl:
+
+1. `backend/api.py`
+
+Teendo:
+
+1. A `GET /report` endpoint biztosan a vegleges report szerkezetet adja.
+2. Hibakezeles legyen ertelmes.
+3. Ures report eseten jo hiba legyen.
+
+Elfogadasi kriterium:
+
+1. a frontend vagy browserbol megnyithato a teljes package
+
+### A7 - review summary logika
+
+Celpont:
+
+A backend egyertelmuen mondja ki, hogy auditor review szukseges-e.
+
+Fajlok:
+
+1. `backend/pipeline.py`
+2. `backend/api.py`
+
+Teendo:
+
+1. A summaryba tegye bele a `review_required` mezojet.
+2. Red flag eseten ez legyen `true`.
+3. Keszitsen `material_red_count` vagy hasonlo mezojet, ha segiti a frontend renderelest.
+
+Elfogadasi kriterium:
+
+1. Ember B mar kulon business logika nelkul ki tudja irni a review calloutot
+
+### A8 - mock es live output osszehangolasa
+
+Celpont:
+
+Frontend ugyanazt a formatumot kapja mock es live modban.
+
+Fajl:
+
+1. `backend/api.py`
+
+Teendo:
+
+1. A mock evidence es a live evidence mezozese egyezzen.
+2. A summary szerkezet egyezzen.
+3. Az SSE dramaturgia egyezzen.
+
+Elfogadasi kriterium:
+
+1. a frontend special-case nelkul mukodik mindket modban
+
+### A9 - stabilitasi tesztkor
+
+Celpont:
+
+Ne a demo alatt deruljon ki, hogy valami flaky.
+
+Teendo:
+
+1. Futtassa le legalabb 5-szor a teljes auditot.
+2. Hasonlitsa ossze a finding countot.
+3. Hasonlitsa ossze a red flag countot.
+4. Ellenorizze a `health`, `audit`, `report`, `evidence` endpointokat.
+
+Elfogadasi kriterium:
+
+1. nincs flaky kimenet
+
+### A10 - fallback terv
+
+Celpont:
+
+Ha az LLM layer bizonytalan, a demo akkor is mukodjon.
+
+Teendo:
+
+1. A deterministic fallback legyen mindig futtathato.
+2. Mock mod is maradjon hasznalhato vegso tartaleknak.
+3. Legyen elore dokumentalt command a biztos demo inditasahoz.
+
+Elfogadasi kriterium:
+
+1. van B terv a szinpadra
+
+## Ember B - konkret vegrehajtasi backlog
+
+Ez a lista mar vegleges. Ember B ennek sorrendjeben halad. Nem kell ujratervezni, csak leirni a kodot.
+
+### B0 - vegleges demo UX dontesek rogzitese
+
+Celpont:
+
+Ne legyen felesleges kepernyo a demo kozben.
+
+Vegleges demo flow:
+
+1. `New Audit` - upload es launch
+2. `Audit Logs` - fo demo nezet
+3. `Dashboard` - zaro osszegzo nezet, ha kell
+
+Teendo:
+
+1. Minden felesleges UI-elemet vegyen ki vagy halkitson el.
+2. A fo hangsuly az `Audit Logs` nezetre keruljon.
+
+Elfogadasi kriterium:
+
+1. a demo alatt nincs zavaros navigacio
+
+### B1 - SSE feed vegleges renderelese
+
+Celpont:
+
+A workflow feed legyen a demo egyik fo latvanyelementuma.
+
+Fajlok:
+
+1. `frontend/src/hooks/useAtlasData.ts`
+2. `frontend/src/components/audit/AgentFeed.tsx`
+
+Teendo:
+
+1. A backend fix event taxonomyat lekovesse.
+2. Kulon cimkeje legyen az agent tipusanak.
+3. Az uzenetek olvashatoak legyenek.
+4. A piros finding eventek kulon kiemelest kapjanak.
+5. Az utolso 30-50 eventet tartsa meg.
+
+Elfogadasi kriterium:
+
+1. a biro 5 masodperc alatt ertse, hogy itt workflow fut, nem csak log spam
+
+### B2 - Source Trace Table atalakitas az uj schemahoz
+
+Celpont:
+
+A trace tabla legyen a demo hitelessegenek kozeppontja.
+
+Fajl:
+
+1. `frontend/src/components/audit/SourceTraceTable.tsx`
+
+Teendo:
+
+1. Az uj finding schema alapjan rendereljen.
+2. Kotelezo oszlopok:
+   - Data Point
+   - Source File
+   - Sheet / Ref
+   - Cell
+   - Source Value
+   - Deviation
+   - Flag
+3. Missing evidence is ertelmesen jelenjen meg.
+4. Red findingok legyenek azonnal lathatok.
+
+Elfogadasi kriterium:
+
+1. a tabla onmagaban is elmondja a trace sztorit
+
+### B3 - Regulatory Extracts es trace kapcsolat eroszitese
+
+Celpont:
+
+A claim oldali es a source oldali nezopont ossze legyen kotve.
+
+Fajlok:
+
+1. `frontend/src/components/audit/RegulatoryExtracts.tsx`
+2. ha kell `frontend/src/App.tsx`
+
+Teendo:
+
+1. A claim kartyakon latszodjon a flag.
+2. A claim kartyak es a trace tabla ugyanazt a findingot tudjak reprezentalni.
+3. Ha belefer, kattintaskor same item legyen aktiv mindket panelen.
+
+Elfogadasi kriterium:
+
+1. a demo soran egy findingrol gyorsan at lehet menni claimrol source-ra
+
+### B4 - review required panel
+
+Celpont:
+
+Mutatni, hogy az auditor a vegso kontrollpont.
+
+Fajlok:
+
+1. `frontend/src/components/dashboard/Dashboard.tsx`
+2. vagy uj komponens `frontend/src/components/audit/*`
+
+Teendo:
+
+1. Keszitsen kulon panelt a material red flag-eknek.
+2. A panel mutassa:
+   - data point
+   - claim vs source
+   - deviation
+   - miert fontos
+3. Top-level callout: `Auditor Review Required`.
+4. Ha belefer, action buttonok csak UI-szinten:
+   - Accept for review
+   - Needs manual evidence
+   - Override
+
+Elfogadasi kriterium:
+
+1. a demo alatt a human-in-the-loop koncepcio latszik
+
+### B5 - summary cardok ujradefinialasa
+
+Celpont:
+
+A summary ne dekoracio legyen, hanem business message.
+
+Fajlok:
+
+1. `frontend/src/components/dashboard/Dashboard.tsx`
+2. `frontend/src/components/dashboard/SummaryCard.tsx`
+3. `frontend/src/components/layout/StatusBar.tsx`
+
+Vegleges summary elemek:
+
+1. Total Findings
+2. Red Flags
+3. Files Checked
+4. Review Required
+
+Teendo:
+
+1. Ezeket a summarybol vagy health-bol toltse.
+2. A `review_required` legyen vizualisan hangsulyos.
+
+Elfogadasi kriterium:
+
+1. a summary a pitch uzleti allitasat tamogatja
+
+### B6 - upload flow polish
+
+Celpont:
+
+Az upload ne tunjon technikai mellekfunkcionak.
+
+Fajlok:
+
+1. `frontend/src/components/new-audit/StepUpload.tsx`
+2. `frontend/src/components/new-audit/StepReview.tsx`
+3. `frontend/src/components/new-audit/NewAudit.tsx`
+
+Teendo:
+
+1. Ellenorizze, hogy a statement PDF kulon jol latszik.
+2. Ellenorizze, hogy a source file-ok listaja ertelmes.
+3. A launch CTA legyen egyertelmu.
+4. A launch utan az app vigyen at a fo demo nezetre.
+
+Elfogadasi kriterium:
+
+1. a demo upload resze 20-30 masodperc alatt vegigkattinthato
+
+### B7 - evidence package UX
+
+Celpont:
+
+Legyen megmutathato a kezbe veheto kimenet.
+
+Fajlok:
+
+1. `frontend/src/services/api.ts`
+2. megfelelo komponens a dashboardban vagy audit nezetben
+
+Teendo:
+
+1. Hozzon be egy `View Evidence Package` akciot.
+2. Ha nincs szep viewer, legalabb nyissa meg vagy jelenitse meg letisztultan a JSON-t.
+3. A usernek latszodjon, hogy ez exportalhato audit artifact.
+
+Elfogadasi kriterium:
+
+1. a demo vegen van mit megmutatni, mint output deliverable
+
+### B8 - szovegezesi es vizualis polish
+
+Celpont:
+
+A UI hangja PwC-kompatibilis, professzionalis legyen.
+
+Teendo:
+
+1. Minden cimkeszoveget letisztit.
+2. Kiveszi a zavaros vagy generikus AI-os megfogalmazasokat.
+3. Az allapotnyelv legyen kovetkezetes:
+   - Audit Running
+   - Trace Complete
+   - Review Required
+   - Evidence Package Ready
+4. A red / yellow / green nyelv mindenhol egyforma legyen.
+
+Elfogadasi kriterium:
+
+1. a UI nem startup hobby projektnek, hanem komoly audit toolnak tunik
+
+### B9 - pitch anyagok
+
+Celpont:
+
+Ne csak app legyen, hanem eladhato sztori.
+
+Teendo:
+
+1. 60 masodperces opening megirasa.
+2. 3 perces demo script megirasa.
+3. 4 slide osszerakasa:
+   - problema
+   - megoldas
+   - workflow
+   - uzleti impact
+4. Backup screenshotok keszitese.
+
+Elfogadasi kriterium:
+
+1. ha a demo reszben technikai csuszas van, a pitch akkor is eros marad
+
+## Handshake pontok
+
+Ezek kotelezo egyeztetesi pontok. Itt meg kell allni 10-15 percre es szinkronizalni.
+
+### Handshake 1 - 2. ora vegen
+
+Ellenorizni kell:
+
+1. mi a vegleges demo dataset
+2. mi a vegleges finding schema
+3. milyen SSE event nevek lesznek
+
+### Handshake 2 - 5. ora vegen
+
+Ellenorizni kell:
+
+1. a frontend mar tudja-e fogyasztani az uj schema-t
+2. a source trace tabla jo oszlopokat kap-e
+3. a piros flag-ek biztosan latszanak-e
+
+### Handshake 3 - 9. ora vegen
+
+Ellenorizni kell:
+
+1. van-e review required panel
+2. megnyithato-e a report package
+3. megvan-e a demo wow moment
+
+### Handshake 4 - 14. ora vegen
+
+Ellenorizni kell:
+
+1. feature freeze
+2. pitch anyagok allapota
+3. fallback terv
+
+## Parhuzamositas pontos matrixa
+
+### Egyszerre futhat
+
+1. A1 es B1
+2. A3 es B2
+3. A4 es B3
+4. A5 es B5
+5. A7 es B4
+6. A9 es B9
+
+### Nem futhat egyszerre egyeztetes nelkul
+
+1. A3 es B2 akkor, ha a schema meg valtozik
+2. A5 es B7 akkor, ha a report contract meg nem fix
+3. B4 nem indulhat el, amig A7 nincs nagyjabol kesz
+
+## Ha valami csuszik, mit vagnunk ki eloszor
+
+1. UI action gombok a review panelbol
+2. kattinthato kapcsolat claim es trace panel kozott
+3. optional supporting PDF trace
+4. orchestrator wrapper barmilyen extra logikaja
+
+Ezeket NEM vagjuk ki:
+
+1. audit inditas
+2. workflow feed
+3. source trace tabla
+4. red flag-ek
+5. evidence package
+
 ## 20 oras reszletes terv
 
 ## 0. ora - kickoff es scope lock (30-45 perc, kozosen)
