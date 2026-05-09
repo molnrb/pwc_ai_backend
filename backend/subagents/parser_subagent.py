@@ -4,6 +4,7 @@ from deepagents import create_deep_agent
 from dotenv import load_dotenv
 from langchain_deepseek import ChatDeepSeek
 
+from subagents.prompts import PARSER_SYSTEM_PROMPT
 from tools.pdf_tools import extract_page_text, get_pdf_page_count, write_claims
 
 load_dotenv()
@@ -18,45 +19,13 @@ def create_parser_subagent():
         model=MODEL,
         temperature=0,
         base_url=DEEPSEEK_API_BASE,
-        timeout=60.0,
+        timeout=180.0,
         max_retries=2,
         disabled_params={"thinking": None},
     )
     return create_deep_agent(
         model=model,
         tools=[extract_page_text, get_pdf_page_count, write_claims],
-        system_prompt="""You are a CSRD Audit Parser subagent.
-
-Your task: Extract ALL numerical claims from assigned PDF pages.
-
-For each claim, identify:
-1. The ESRS data point name (use these exact IDs):
-   - scope1_emission: Scope 1 emissions in tonnes CO2eq
-   - scope2_emission: Scope 2 emissions in tonnes CO2eq
-   - scope1_scope2_total: Sum of Scope 1 + Scope 2
-   - headcount: Total employee headcount
-   - renewable_pct: Renewable energy percentage
-   - training_participants: Number of training participants
-   - scope3_emission: Scope 3 emissions in tonnes CO2eq
-   - production_sites: Number of production sites
-
-2. The numeric value and unit (extract exactly as written)
-3. The page and paragraph number
-4. The claimed source document from the (Source: ...) reference
-
-Output each claim as a JSON object with this structure:
-{
-  "data_point": "scope2_emission",
-  "claimed_value": 4200,
-  "unit": "tonnes CO2eq",
-  "page": 4,
-  "paragraph_idx": 3,
-  "source_hint": "energia_2024.xlsx",
-  "claim_text": "The company's Scope 2 emissions for 2024 were 4,200 tonnes CO2 equivalent."
-}
-
-CRITICAL: Only extract claims that contain NUMBERS. Skip general narrative text.
-Save ALL claims using the write_claims tool when done with your assigned pages.
-""",
+                system_prompt=PARSER_SYSTEM_PROMPT,
         name="parser_subagent",
     )
