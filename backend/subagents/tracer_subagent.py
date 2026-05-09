@@ -1,20 +1,41 @@
-"""Tracer subagent — creates and manages the Excel tracing agent."""
-
 import os
+
 from deepagents import create_deep_agent
+from dotenv import load_dotenv
 from langchain_deepseek import ChatDeepSeek
+
+from tools.artifact_tools import list_claim_files, read_claim_file
 from tools.excel_tools import read_excel_cell, read_excel_summary, count_csv_rows, write_evidence
 from tools.validator_tool import validate_claim, compute_total
 
+load_dotenv()
+
 MODEL = os.environ.get("TRACER_MODEL", "deepseek-chat")
+DEEPSEEK_API_BASE = os.environ.get("DEEPSEEK_API_BASE") or None
 
 
 def create_tracer_subagent():
     """Create the Tracer subagent configured with DeepSeek."""
-    model = ChatDeepSeek(model=MODEL, disabled_params={"thinking": None})
+    model = ChatDeepSeek(
+        model=MODEL,
+        temperature=0,
+        base_url=DEEPSEEK_API_BASE,
+        timeout=60.0,
+        max_retries=2,
+        disabled_params={"thinking": None},
+    )
     return create_deep_agent(
         model=model,
-        tools=[read_excel_cell, read_excel_summary, count_csv_rows, validate_claim, compute_total, write_evidence],
+        tools=[
+            list_claim_files,
+            read_claim_file,
+            read_excel_cell,
+            read_excel_summary,
+            count_csv_rows,
+            validate_claim,
+            compute_total,
+            write_evidence,
+        ],
         system_prompt="""You are a CSRD Audit Tracer subagent.
 
 Your task: For every claim assigned to you, find the source value in the original document and validate it.
@@ -49,7 +70,3 @@ against the PDF claim. Use compute_total tool.
 """,
         name="tracer_subagent",
     )
-
-
-# Singleton instance for module-level import
-tracer_subagent = create_tracer_subagent()

@@ -1,0 +1,20 @@
+[
+  {
+    "data_point": "training_participants",
+    "claimed_value": 1240,
+    "unit": "employees",
+    "page": 11,
+    "paragraph_idx": 2,
+    "source_hint": "internal training records",
+    "claim_text": "The number of participants in training programs was 1,240 employees."
+  },
+  {
+    "data_point": "production_sites",
+    "claimed_value": 3,
+    "unit": "sites",
+    "page": 14,
+    "paragraph_idx": 5,
+    "source_hint": "atlas_sustainability_statement.pdf",
+    "claim_text": "This includes the three production sites (Budapest, Győr, and Pécs) and the Budapest headquarters office."
+  }
+]

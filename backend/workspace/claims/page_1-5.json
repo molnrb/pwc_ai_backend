@@ -1,0 +1,11 @@
+[
+  {
+    "data_point": "production_sites",
+    "claimed_value": 3,
+    "unit": "sites",
+    "page": 4,
+    "paragraph_idx": 2,
+    "source_hint": "atlas_sustainability_statement.pdf",
+    "claim_text": "The company conducts production activities at 3 sites. These facilities are located in Budapest (the company's headquarters and primary manufacturing hub), Győr (a specialized facility focused on high-precision machining for automotive drivetrain components), and Pécs (a dedicated assembly and finishing plant serving the renewable energy sector)."
+  }
+]

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchEvidence, fetchHealth, triggerAudit, connectSSE, type Evidence, type Summary, type HealthStatus, type SSEEvent } from '../services/api';
+import { fetchEvidence, fetchHealth, fetchReport, triggerAudit, connectSSE, type Evidence, type Summary, type HealthStatus, type SSEEvent } from '../services/api';
 
 interface FeedEntry {
   agent: string;
@@ -47,6 +47,15 @@ export function useAtlasData() {
   const addFeedEntry = useCallback((agent: string, message: string) => {
     const now = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
     setFeed(prev => [{ agent, timestamp: now, message }, ...prev].slice(0, 50));
+  }, []);
+
+  const clearRunState = useCallback(() => {
+    esRef.current?.close();
+    esRef.current = null;
+    setEvidence([]);
+    setSummary(null);
+    setFeed([]);
+    setLoading(false);
   }, []);
 
   const syncEvidence = useCallback(async () => {
@@ -158,6 +167,13 @@ export function useAtlasData() {
               });
             }
             addFeedEntry('SYSTEM', `Audit complete. ${sum?.total || ev?.length || 0} findings. ${sum?.red_count || 0} red flags.`);
+            void fetchReport()
+              .then((report) => {
+                addFeedEntry('SYSTEM', `Pipeline: ${report.audit_metadata.pipeline} (${report.audit_metadata.parser_mode})`);
+              })
+              .catch(() => {
+                // Report metadata is best-effort enrichment for the live feed.
+              });
             esRef.current?.close();
             esRef.current = null;
             setLoading(false);
@@ -194,5 +210,5 @@ export function useAtlasData() {
     return () => { esRef.current?.close(); };
   }, [loadData]);
 
-  return { evidence, summary, health, feed, loading, loadData, runAudit, startStream, stopStream, addFeedEntry };
+  return { evidence, summary, health, feed, loading, loadData, runAudit, startStream, stopStream, addFeedEntry, clearRunState };
 }
