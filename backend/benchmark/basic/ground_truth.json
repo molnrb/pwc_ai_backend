@@ -1,0 +1,34 @@
+{
+  "description": "Basic benchmark ground truth — current demo documents",
+  "statement_pdf": "atlas_sustainability_statement.pdf",
+  "expected_claims": [
+    {"data_point_id": "scope1_emission", "expected_value": 1850, "unit": "tCO2e"},
+    {"data_point_id": "scope2_emission", "expected_value": 4200, "unit": "tCO2e"},
+    {"data_point_id": "scope1_scope2_total", "expected_value": 6050, "unit": "tCO2e"},
+    {"data_point_id": "scope3_emission", "expected_value": 18400, "unit": "tCO2e"},
+    {"data_point_id": "headcount", "expected_value": 2340, "unit": "fő"},
+    {"data_point_id": "renewable_pct", "expected_value": 67, "unit": "%"},
+    {"data_point_id": "training_participants", "expected_value": 1240, "unit": "fő"},
+    {"data_point_id": "production_sites", "expected_value": 3, "unit": "db"}
+  ],
+  "expected_source_matches": [
+    {"data_point_id": "scope1_emission", "source_file": "energia_2024.xlsx", "expected_source_value": 1850},
+    {"data_point_id": "scope2_emission", "source_file": "energia_2024.xlsx", "expected_source_value": 3800},
+    {"data_point_id": "scope1_scope2_total", "source_file": "energia_2024.xlsx", "expected_source_value": 5650},
+    {"data_point_id": "scope3_emission", "source_file": "scope3_szallito.xlsx", "expected_source_value": 18400},
+    {"data_point_id": "renewable_pct", "source_file": "energia_2024.xlsx", "expected_source_value": 67},
+    {"data_point_id": "headcount", "source_file": "hr_export_2024.csv", "expected_source_value": 2290},
+    {"data_point_id": "training_participants", "source_file": null, "expected_source_value": null},
+    {"data_point_id": "production_sites", "source_file": null, "expected_source_value": null}
+  ],
+  "expected_validation_flags": [
+    {"data_point_id": "scope1_emission", "expected_flag": "green"},
+    {"data_point_id": "scope2_emission", "expected_flag": "red"},
+    {"data_point_id": "scope1_scope2_total", "expected_flag": "red"},
+    {"data_point_id": "scope3_emission", "expected_flag": "green"},
+    {"data_point_id": "headcount", "expected_flag": "yellow"},
+    {"data_point_id": "renewable_pct", "expected_flag": "green"},
+    {"data_point_id": "training_participants", "expected_flag": "grey"},
+    {"data_point_id": "production_sites", "expected_flag": "grey"}
+  ]
+}

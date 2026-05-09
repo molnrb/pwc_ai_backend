@@ -3,6 +3,8 @@ import os
 import pandas as pd
 from langchain_core.tools import tool
 
+from input_bundle import resolve_input_path
+
 WORKSPACE_DIR = os.environ.get("WORKSPACE_DIR", "workspace")
 
 
@@ -23,7 +25,7 @@ def _coerce_excel_value(value):
 
 
 def _input_path(filename: str) -> str:
-    return os.path.join(WORKSPACE_DIR, "input", filename)
+    return str(resolve_input_path(filename, WORKSPACE_DIR))
 
 
 def _evidence_path(filename: str) -> str:
@@ -44,7 +46,10 @@ def read_excel_cell(filename: str, sheet: str, row_label: str, col_label: str) -
         JSON with value, cell reference, and sheet name
     """
     filepath = _input_path(filename)
-    df = pd.read_excel(filepath, sheet_name=sheet)
+    try:
+        df = pd.read_excel(filepath, sheet_name=sheet)
+    except Exception as exc:
+        return json.dumps({"error": str(exc), "filename": filename, "sheet": sheet})
     
     # Find the row containing the label
     row_mask = df.iloc[:, 0].astype(str).str.contains(row_label, na=False)
@@ -81,11 +86,18 @@ def read_excel_summary(filename: str) -> str:
         JSON with sheet names and their columns/row counts
     """
     filepath = _input_path(filename)
-    xl = pd.ExcelFile(filepath)
+    try:
+        xl = pd.ExcelFile(filepath)
+    except Exception as exc:
+        return json.dumps({"error": str(exc), "filename": filename})
     
     sheets = {}
     for sheet in xl.sheet_names:
-        df = pd.read_excel(filepath, sheet_name=sheet)
+        try:
+            df = pd.read_excel(filepath, sheet_name=sheet)
+        except Exception as exc:
+            sheets[sheet] = {"error": str(exc)}
+            continue
         sheets[sheet] = {
             "columns": list(df.columns),
             "row_count": len(df),
@@ -108,7 +120,10 @@ def count_csv_rows(filename: str, filter_col: str, filter_val: str) -> str:
         JSON with count and filter info
     """
     filepath = _input_path(filename)
-    df = pd.read_csv(filepath)
+    try:
+        df = pd.read_csv(filepath)
+    except Exception as exc:
+        return json.dumps({"error": str(exc), "filename": filename})
     
     if filter_col not in df.columns:
         return json.dumps({"error": f"Column '{filter_col}' not found. Available: {list(df.columns)}"})

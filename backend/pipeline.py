@@ -13,11 +13,13 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import fitz  # pymupdf
 import pandas as pd
 from dotenv import load_dotenv
+
+from input_bundle import get_input_dir, get_statement_filename, load_audit_manifest
 
 try:
     from langchain_core.messages import HumanMessage
@@ -26,10 +28,27 @@ except Exception:  # pragma: no cover - optional live LLM path
     HumanMessage = None
     ChatDeepSeek = None
 
+# ── New generic pipeline imports (Phase 1-6 modules) ──────────────────
+try:
+    from ingestion.document_store import DocumentStore, get_document_store
+    from extraction.candidate_extractor import extract_candidates_deterministic
+    from extraction.pdf_candidate_extractor import extract_pdf_candidates
+    from normalization.claim_normalizer import ClaimNormalizer, get_normalizer
+    from retrieval.evidence_retriever import EvidenceRetriever, get_retriever
+    from retrieval.tabular_evidence_search import find_tabular_evidence
+    from retrieval.pdf_evidence_search import find_pdf_evidence
+    from resolution.match_resolver import resolve_best_match
+    from resolution.validation_engine import validate as validate_claim_generic
+    from ontology.loader import get_ontology
+    _GENERIC_PIPELINE_AVAILABLE = True
+except ImportError as _gen_err:  # pragma: no cover
+    _GENERIC_PIPELINE_AVAILABLE = False
+    logger = None  # will be set below
+
 load_dotenv()
 
 WORKSPACE = Path(os.environ.get("WORKSPACE_DIR", str(Path(__file__).parent / "workspace")))
-INPUT_DIR = WORKSPACE / "input"
+INPUT_DIR = get_input_dir(WORKSPACE)
 CLAIMS_DIR = WORKSPACE / "claims"
 EVIDENCE_DIR = WORKSPACE / "evidence"
 REPORT_PATH = WORKSPACE / "audit_report.json"
@@ -287,6 +306,8 @@ def run_full_audit(
     _emit(progress_callback, "agent_done", {"agent": "Reporter", "message": "Evidence package saved to audit_report.json"})
     _emit(progress_callback, "phase", {"phase": "build_report", "message": "Report complete — evidence package ready"})
     _emit(progress_callback, "complete", {
+        "pipeline": report["audit_metadata"]["pipeline"],
+        "parser_mode": report["audit_metadata"]["parser_mode"],
         "summary": summary,
         "total_findings": len(findings),
         "review_required": summary.get("review_required", False),
@@ -798,9 +819,17 @@ def _coerce_numeric(raw_value: Any) -> int | float | None:
 
 
 def _resolve_pdf_path(pdf_filename: str) -> Path:
-    candidate = INPUT_DIR / pdf_filename
-    if candidate.exists():
-        return candidate
+    candidate_names = []
+    configured_statement = get_statement_filename(default_filename=None, workspace_dir=WORKSPACE)
+    if configured_statement:
+        candidate_names.append(configured_statement)
+    if pdf_filename and pdf_filename not in candidate_names:
+        candidate_names.append(pdf_filename)
+
+    for candidate_name in candidate_names:
+        candidate = INPUT_DIR / candidate_name
+        if candidate.exists():
+            return candidate
 
     pdf_files = sorted(path for path in INPUT_DIR.glob('*.pdf') if path.is_file())
     if len(pdf_files) == 1:
@@ -822,8 +851,18 @@ def _get_page_count(pdf_path: Path) -> int:
 
 def _infer_document_role(filename: str) -> str:
     """Infer the role of a document from its filename."""
+    manifest = load_audit_manifest(WORKSPACE)
+    if manifest is not None:
+        statement = manifest.get("statement_document")
+        if isinstance(statement, dict) and Path(str(statement.get("path", ""))).name == filename:
+            return "statement"
+        if filename == "audit_index.json":
+            return "manifest_internal"
+
     name = filename.lower()
     if "statement" in name or "sustainability" in name:
+        return "statement"
+    if "excerpt" in name:
         return "statement"
     if "energia" in name and "szamla" in name:
         return "supporting_invoice"
@@ -833,6 +872,12 @@ def _infer_document_role(filename: str) -> str:
         return "hr_source"
     if "scope3" in name or "szallito" in name:
         return "scope3_source"
+    if "invoice" in name:
+        return "source_document"
+    if "register" in name:
+        return "registry"
+    if "workbook" in name:
+        return "calculation_workbook"
     return "supporting"
 
 
@@ -954,6 +999,196 @@ def _log_event(stage: str, detail: Any) -> None:
     logger.info("[%s] %s", stage.upper(), json.dumps(detail, ensure_ascii=False))
 
 
+# ── Generic Pipeline (Phase 7 integration) ────────────────────────────
+
+
+def run_generic_audit(
+    pdf_filename: str = "atlas_sustainability_statement.pdf",
+    progress_callback=None,
+) -> dict:
+    """Run the full generic pipeline using layers 1-6.
+
+    This is the new pipeline path that uses:
+    - Ingestion → Candidate Extraction → Normalization → Evidence Retrieval
+    - Resolution → Deterministic Validation → Report
+
+    Falls back to run_full_audit() if the generic pipeline modules are unavailable.
+    """
+    if not _GENERIC_PIPELINE_AVAILABLE:
+        logger.warning("Generic pipeline modules unavailable — using legacy pipeline")
+        return run_full_audit(pdf_filename=pdf_filename, progress_callback=progress_callback)
+
+    _ensure_dirs()
+    started_at = datetime.now(timezone.utc).isoformat()
+    pdf_path = _resolve_pdf_path(pdf_filename)
+    pdf_filename = pdf_path.name
+
+    # ── Phase: ingest_documents ──
+    _emit(progress_callback, "phase", {"phase": "ingest_documents", "message": "Ingesting all input documents..."})
+    store = DocumentStore()
+    store.ingest_all(INPUT_DIR)
+    _emit(progress_callback, "phase", {"phase": "ingest_documents", "message": f"Ingested {len(store.assets)} documents"})
+
+    # ── Phase: extract_candidates ──
+    _emit(progress_callback, "phase", {"phase": "extract_candidates", "message": "Extracting claim candidates from statement PDF..."})
+    candidates = extract_pdf_candidates(pdf_path)
+    _emit(progress_callback, "phase", {"phase": "extract_candidates", "message": f"Extracted {len(candidates)} candidates"})
+
+    # ── Phase: normalize_claims ──
+    _emit(progress_callback, "phase", {"phase": "normalize_claims", "message": "Normalizing candidates to canonical claims..."})
+    normalizer = get_normalizer()
+    claims = normalizer.normalize(candidates)
+    _emit(progress_callback, "phase", {"phase": "normalize_claims", "message": f"Normalized {len(claims)} claims"})
+
+    # ── Phase: retrieve_evidence ──
+    _emit(progress_callback, "phase", {"phase": "retrieve_evidence", "message": "Retrieving evidence candidates..."})
+    retriever = get_retriever()
+    for filename, sheet_tables in store.sheet_tables.items():
+        retriever.add_excel_sheets(filename, sheet_tables)
+    for filename, csv_table in store.csv_tables.items():
+        retriever.add_csv_table(filename, csv_table)
+    for filename, pdf_blocks in store.pdf_blocks.items():
+        if filename != pdf_filename:  # Don't search the statement PDF for evidence of itself
+            retriever.add_pdf_blocks(filename, pdf_blocks)
+
+    all_evidence: dict[str, list] = {}
+    for claim in claims:
+        all_evidence[claim.claim_id] = retriever.retrieve(claim)
+    _emit(progress_callback, "phase", {"phase": "retrieve_evidence", "message": f"Retrieved evidence for {len(claims)} claims"})
+
+    # ── Phase: resolve_matches ──
+    _emit(progress_callback, "phase", {"phase": "resolve_matches", "message": "Resolving best evidence matches..."})
+    from resolution.match_resolver import resolve_for_claims
+    resolved = resolve_for_claims(claims, all_evidence)
+    resolved_evidence: dict[str, Optional[Any]] = {}
+    for claim_id, match_tuple in resolved.items():
+        if match_tuple is not None:
+            resolved_evidence[claim_id] = match_tuple[1]  # EvidenceCandidate
+        else:
+            resolved_evidence[claim_id] = None
+    _emit(progress_callback, "phase", {"phase": "resolve_matches", "message": f"Resolved matches for {len(resolved)} claims"})
+
+    # ── Phase: validate_findings ──
+    _emit(progress_callback, "phase", {"phase": "validate_findings", "message": "Running deterministic validation..."})
+    from resolution.validation_engine import validate_all
+    findings = validate_all(claims, resolved_evidence)
+    _emit(progress_callback, "phase", {"phase": "validate_findings", "message": f"Validated {len(findings)} findings"})
+
+    # ── Phase: build_report ──
+    _emit(progress_callback, "phase", {"phase": "build_report", "message": "Assembling audit report..."})
+    summary = _compute_summary_generic(findings)
+    completed_at = datetime.now(timezone.utc).isoformat()
+
+    document_inventory = []
+    for f in sorted(INPUT_DIR.glob("*")):
+        if f.is_file():
+            document_inventory.append({
+                "filename": f.name,
+                "type": f.suffix,
+                "size_kb": round(f.stat().st_size / 1024, 1),
+                "role": _infer_document_role(f.name),
+            })
+
+    # Convert findings to dicts for JSON
+    findings_dicts = [_generic_finding_to_dict(f) for f in findings]
+
+    report = {
+        "audit_metadata": {
+            "document": pdf_filename,
+            "standard": "ESRS E1 — Climate Change",
+            "framework": "EU CSRD",
+            "pipeline": "generic_v1",
+            "parser_mode": "generic_candidate_extraction",
+            "started_at": started_at,
+            "completed_at": completed_at,
+            "total_pages": _get_page_count(pdf_path),
+            "total_candidates": len(candidates),
+            "total_claims_found": len(claims),
+            "total_findings": len(findings),
+        },
+        "document_inventory": document_inventory,
+        "findings": findings_dicts,
+        "summary": summary,
+        "red_flags": summary.get("red_flags", []),
+        "review_required": summary.get("review_required", False),
+    }
+
+    REPORT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False))
+    _emit(progress_callback, "phase", {"phase": "build_report", "message": "Report complete — evidence package ready"})
+    _emit(progress_callback, "complete", {
+        "pipeline": report["audit_metadata"]["pipeline"],
+        "parser_mode": report["audit_metadata"]["parser_mode"],
+        "summary": summary,
+        "total_findings": len(findings),
+        "review_required": summary.get("review_required", False),
+    })
+    return report
+
+
+def _generic_finding_to_dict(finding) -> dict:
+    """Convert an AuditFinding model to a JSON-safe dict."""
+    return {
+        "data_point": finding.data_point,
+        "claim_text": finding.claim_text,
+        "claimed_value": finding.claimed_value,
+        "source_value": finding.source_value,
+        "unit": finding.unit,
+        "flag": finding.flag,
+        "deviation_pct": finding.deviation_pct,
+        "extraction_confidence": finding.extraction_confidence,
+        "mapping_confidence": finding.mapping_confidence,
+        "retrieval_confidence": finding.retrieval_confidence,
+        "review_required": finding.review_required,
+        "explanation": finding.explanation,
+        "source_file": finding.source_file,
+        "source_sheet": finding.source_sheet,
+        "source_cell": finding.source_cell,
+        "page": finding.page,
+        "paragraph_idx": finding.paragraph_idx,
+        "review_reason": finding.review_reason,
+        "provenance": finding.provenance,
+    }
+
+
+def _compute_summary_generic(findings: list) -> dict:
+    """Compute summary from AuditFinding model objects."""
+    green = sum(1 for f in findings if f.flag == "green")
+    yellow = sum(1 for f in findings if f.flag == "yellow")
+    red = sum(1 for f in findings if f.flag == "red")
+    grey = sum(1 for f in findings if f.flag == "grey")
+
+    red_flags = [
+        {
+            "data_point": f.data_point,
+            "claimed": f.claimed_value,
+            "actual": f.source_value,
+            "deviation_pct": f.deviation_pct,
+            "explanation": f.explanation,
+        }
+        for f in findings
+        if f.flag == "red"
+    ]
+
+    review_required = any(f.review_required for f in findings)
+
+    return {
+        "green_count": green,
+        "yellow_count": yellow,
+        "red_count": red,
+        "grey_count": grey,
+        "total": len(findings),
+        "material_red_count": red,
+        "red_flags": red_flags,
+        "review_required": review_required,
+        "verdict": "PASS" if red == 0 else f"FAIL — {red} material misstatement(s) detected",
+        "materiality_note": (
+            f"{red} material error(s) found. Auditor must investigate flagged items before signing off."
+            if red > 0
+            else "No material misstatements. Report is consistent with source data."
+        ),
+    }
+
+
 def _emit(callback, stage, detail):
     """Call progress callback if provided. Works sync or async."""
     _log_event(stage, detail)
@@ -961,9 +1196,7 @@ def _emit(callback, stage, detail):
         return
     try:
         result = callback(stage, detail)
-        # If it returns a coroutine, we can't await here (sync context).
-        # Store it for the caller but ignore for now — pipeline is sync.
         if result is not None and hasattr(result, '__await__'):
-            pass  # async callback in sync context — silently skip
+            pass
     except Exception:
         pass

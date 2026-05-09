@@ -1,7 +1,9 @@
 """Atlas orchestrator — main coordination logic using deepagents."""
 
+import asyncio
 import json
 import os
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -9,11 +11,24 @@ from typing import Any
 from deepagents import create_deep_agent
 from dotenv import load_dotenv
 from langchain_deepseek import ChatDeepSeek
+from input_bundle import get_input_dir
 
 from subagents.parser_subagent import create_parser_subagent
-from subagents.tracer_subagent import create_tracer_subagent
+from subagents.prompts import (
+    ORCHESTRATOR_SYSTEM_PROMPT,
+    PARSER_SYSTEM_PROMPT,
+    TRACER_SYSTEM_PROMPT,
+)
+from subagents.tracer_subagent import create_tracer_subagent, make_tracer_model
 from tools.artifact_tools import list_claim_files, read_claim_file
-from tools.pdf_tools import extract_page_text, get_pdf_page_count, write_claims
+from tools.csv_tools import profile_csv, search_csv_columns, find_csv_numeric_candidates
+from tools.pdf_tools import (
+    extract_document_page_text,
+    extract_page_text,
+    get_document_page_count,
+    get_pdf_page_count,
+    write_claims,
+)
 from tools.excel_tools import read_excel_cell, read_excel_summary, count_csv_rows, write_evidence
 from tools.validator_tool import validate_claim, compute_total
 
@@ -24,8 +39,11 @@ DEEPSEEK_API_BASE = os.environ.get("DEEPSEEK_API_BASE") or None
 WORKSPACE = Path(os.environ.get("WORKSPACE_DIR", str(Path(__file__).parent / "workspace")))
 CLAIMS_DIR = WORKSPACE / "claims"
 EVIDENCE_DIR = WORKSPACE / "evidence"
+INPUT_DIR = get_input_dir(WORKSPACE)
 
 _atlas_orchestrator = None
+VALID_PIPELINE_MODES = {"auto", "deepagents", "generic", "legacy"}
+TRACER_CONCURRENCY = max(1, int(os.environ.get("ATLAS_TRACER_CONCURRENCY", "2")))
 
 
 def _make_model():
@@ -34,7 +52,7 @@ def _make_model():
         temperature=0,
         max_tokens=4096,
     base_url=DEEPSEEK_API_BASE,
-    timeout=60.0,
+    timeout=180.0,
     max_retries=2,
     disabled_params={"thinking": None},
     )
@@ -45,86 +63,13 @@ def is_llm_available() -> bool:
     return bool(os.environ.get("DEEPSEEK_API_KEY"))
 
 
-PARSER_SYSTEM_PROMPT = """You are a CSRD Audit Parser subagent.
+def get_pipeline_mode() -> str:
+    """Return the configured pipeline mode from the environment."""
+    raw_mode = os.environ.get("ATLAS_PIPELINE_MODE", "auto").strip().lower()
+    if raw_mode in VALID_PIPELINE_MODES:
+        return raw_mode
 
-Your task: Extract ALL numerical claims from assigned PDF pages.
-
-For each claim, identify:
-1. The ESRS data point name (use these exact IDs):
-   - scope1_emission: Scope 1 emissions in tonnes CO2eq
-   - scope2_emission: Scope 2 emissions in tonnes CO2eq
-   - scope1_scope2_total: Sum of Scope 1 + Scope 2
-   - headcount: Total employee headcount
-   - renewable_pct: Renewable energy percentage
-   - training_participants: Number of training participants
-   - scope3_emission: Scope 3 emissions in tonnes CO2eq
-   - production_sites: Number of production sites
-
-2. The numeric value and unit (extract exactly as written)
-3. The page and paragraph number
-4. The claimed source document from the (Source: ...) reference
-
-Output each claim as a JSON object with this structure:
-{
-  "data_point": "scope2_emission",
-  "claimed_value": 4200,
-  "unit": "tonnes CO2eq",
-  "page": 4,
-  "paragraph_idx": 3,
-  "source_hint": "energia_2024.xlsx",
-  "claim_text": "The company's Scope 2 emissions for 2024 were 4,200 tonnes CO2 equivalent."
-}
-
-CRITICAL: Only extract claims that contain NUMBERS. Skip general narrative text.
-Save ALL claims using the write_claims tool when done with your assigned pages.
-"""
-
-TRACER_SYSTEM_PROMPT = """You are a CSRD Audit Tracer subagent.
-
-Your task: For every claim assigned to you, find the source value in the original document and validate it.
-
-Workflow:
-1. List claim files from workspace/claims/ and read every claim batch
-2. For each claim, use the source_hint to find the right source file
-3. Look up the actual value in the source document using the appropriate tool:
-   - Excel files → read_excel_cell (probe with read_excel_summary first to find sheet/column names)
-   - CSV files → count_csv_rows
-4. Compare claimed vs source using validate_claim
-5. Save one combined evidence batch using write_evidence
-
-Evidence output format:
-{
-  "data_point": "scope2_emission",
-  "claim_text": "...",
-  "claimed_value": 4200,
-  "source_value": 4020,
-  "unit": "tonnes CO2eq",
-  "source_file": "energia_2024.xlsx",
-  "source_sheet": "Scope1_Scope2",
-  "source_cell": "C5",
-  "flag": "red",
-  "deviation_pct": 4.48,
-  "explanation": "Claimed: 4200 tonnes CO2eq, Source: 4020 tonnes CO2eq, Deviation: 4.48%",
-  "page": 4
-}
-
-IMPORTANT: For scope1_scope2_total, compute the sum from source values (scope1 + scope2) and compare
-against the PDF claim. Use compute_total tool.
-"""
-
-ORCHESTRATOR_SYSTEM_PROMPT = """You are the Atlas CSRD Audit Orchestrator.
-
-Your job:
-1. Ask the parser subagent to inspect the PDF and extract claims in 5-page batches.
-2. Ensure every parser batch writes its output with write_claims.
-3. Ask the tracer subagent to read all claim batches, trace them back to source files, validate them, and persist a combined evidence batch.
-4. Return a concise execution summary only.
-
-Rules:
-- Delegate parser work only to the parser subagent.
-- Delegate tracing and validation work only to the tracer subagent.
-- Keep outputs concise. The Python runtime will assemble the final report.
-"""
+    return "auto"
 
 
 def create_atlas_orchestrator():
@@ -143,8 +88,22 @@ def create_atlas_orchestrator():
         "name": "tracer",
         "description": "Traces each claim back to its source document and validates the values.",
         "system_prompt": TRACER_SYSTEM_PROMPT,
-        "tools": [list_claim_files, read_claim_file, read_excel_cell, read_excel_summary, count_csv_rows, validate_claim, compute_total, write_evidence],
-        "model": _make_model(),
+        "tools": [
+            list_claim_files,
+            read_claim_file,
+            read_excel_cell,
+            read_excel_summary,
+            count_csv_rows,
+            profile_csv,
+            search_csv_columns,
+            find_csv_numeric_candidates,
+            extract_document_page_text,
+            get_document_page_count,
+            validate_claim,
+            compute_total,
+            write_evidence,
+        ],
+        "model": make_tracer_model(),
     }
 
     return create_deep_agent(
@@ -161,7 +120,7 @@ def create_atlas_orchestrator():
 
 
 
-def _page_ranges(total_pages: int, batch_size: int = 5) -> list[str]:
+def _page_ranges(total_pages: int, batch_size: int = 3) -> list[str]:
     return [
         f"{start}-{min(start + batch_size - 1, total_pages)}"
         for start in range(1, total_pages + 1, batch_size)
@@ -185,6 +144,122 @@ def _read_json_batches(directory: Path) -> list[dict[str, Any]]:
             payload.append(data)
 
     return payload
+
+
+def _claim_batch_files() -> list[Path]:
+    if not CLAIMS_DIR.exists():
+        return []
+
+    return sorted(
+        path for path in CLAIMS_DIR.glob("page_*.json")
+        if path.is_file()
+    )
+
+
+def _parser_batch_message(pdf_name: str, page_range: str) -> dict[str, Any]:
+    return {
+        "messages": [{
+            "role": "user",
+            "content": (
+                f"Parse only pages {page_range} from {pdf_name}. "
+                f"Call extract_page_text for each page in this range, extract all supported numerical claims, "
+                f"then call write_claims exactly once with page_range=\"{page_range}\" and the JSON array of claims. "
+                "Return a one-line summary after saving the claims."
+            ),
+        }],
+    }
+
+
+async def _invoke_agent_async(agent: Any, payload: dict[str, Any]) -> Any:
+    if hasattr(agent, "ainvoke"):
+        return await agent.ainvoke(payload)
+    return await asyncio.to_thread(agent.invoke, payload)
+
+
+async def _parse_all_batches(parser_agent: Any, pdf_path: Path, page_ranges: list[str], progress_callback=None) -> list[Any]:
+    from pipeline import _emit
+
+    async def run_one(page_range: str) -> Any:
+        _emit(progress_callback, "agent_progress", {
+            "agent": "Orchestrator",
+            "message": f"Delegating parser batch {page_range}",
+        })
+        return await _invoke_agent_async(parser_agent, _parser_batch_message(pdf_path.name, page_range))
+
+    return await asyncio.gather(*(run_one(page_range) for page_range in page_ranges), return_exceptions=True)
+
+
+def _tracer_batch_message(claim_batch_file: Path, available_files: str) -> dict[str, Any]:
+    batch_name = claim_batch_file.stem.replace("page_", "evidence_")
+    return {
+        "messages": [{
+            "role": "user",
+            "content": (
+                f"Process only the claim batch file '{claim_batch_file.name}'. "
+                f"Read it with read_claim_file('{claim_batch_file.name}'). "
+                f"Only use source files that exist in the active input bundle: {available_files}. "
+                "Trace every claim in that file using the available Excel, CSV, and PDF tools. "
+                "If a guessed filename does not exist, discard it and continue with the listed files only. "
+                f"When finished, call write_evidence exactly once with batch_name='{batch_name}' and the combined JSON array for this batch only. "
+                "Return a short summary after saving the evidence."
+            ),
+        }],
+    }
+
+
+async def _trace_all(tracer_agent: Any, claim_batch_files: list[Path], sem: asyncio.Semaphore, progress_callback=None) -> list[Any]:
+    from pipeline import _emit
+
+    available_files = ", ".join(path.name for path in sorted(INPUT_DIR.glob("*")) if path.is_file())
+
+    async def run_one(claim_batch_file: Path) -> Any:
+        async with sem:
+            _emit(progress_callback, "agent_progress", {
+                "agent": "Tracer",
+                "message": f"Tracing claim batch {claim_batch_file.name}",
+            })
+            return await _invoke_agent_async(
+                tracer_agent,
+                _tracer_batch_message(claim_batch_file, available_files),
+            )
+
+    return await asyncio.gather(*(run_one(claim_batch_file) for claim_batch_file in claim_batch_files), return_exceptions=True)
+
+
+def _detect_cross_batch_ambiguity(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for finding in findings:
+        data_point = finding.get("data_point")
+        if isinstance(data_point, str) and data_point:
+            groups[data_point].append(finding)
+
+    for data_point, group in groups.items():
+        if len(group) < 2:
+            continue
+
+        values = {
+            round(float(finding["claimed_value"]), 4)
+            for finding in group
+            if isinstance(finding.get("claimed_value"), (int, float))
+        }
+        if len(values) <= 1:
+            continue
+
+        page_value_pairs = sorted({
+            (finding.get("page"), finding.get("claimed_value"))
+            for finding in group
+            if finding.get("claimed_value") is not None
+        })
+        explanation = (
+            f"ambiguous_disclosure: PDF reports multiple values for {data_point} "
+            f"({', '.join(f'{value} on p.{page}' for page, value in page_value_pairs)}) - "
+            "different scopes, requires human review"
+        )
+        for finding in group:
+            finding["flag"] = "yellow"
+            finding["explanation"] = explanation
+
+    return findings
 
 
 def _build_report(pdf_path: Path, claims: list[dict[str, Any]], findings: list[dict[str, Any]], parser_mode: str) -> dict:
@@ -256,22 +331,10 @@ def _run_deepagents_demo_audit(progress_callback=None, pdf_filename: str = "atla
         "task": f"Dispatching {len(page_ranges)} parser batches",
     })
 
-    for page_range in page_ranges:
-        _emit(progress_callback, "agent_progress", {
-            "agent": "Orchestrator",
-            "message": f"Delegating parser batch {page_range}",
-        })
-        parser_agent.invoke({
-            "messages": [{
-                "role": "user",
-                "content": (
-                    f"Parse only pages {page_range} from {pdf_path.name}. "
-                    f"Call extract_page_text for each page in this range, extract all supported numerical claims, "
-                    f"then call write_claims exactly once with page_range=\"{page_range}\" and the JSON array of claims. "
-                    "Return a one-line summary after saving the claims."
-                ),
-            }],
-        })
+    parser_results = asyncio.run(_parse_all_batches(parser_agent, pdf_path, page_ranges, progress_callback))
+    parser_errors = [result for result in parser_results if isinstance(result, Exception)]
+    if parser_errors:
+        raise RuntimeError(f"Deepagents parser batch failed: {parser_errors[0]}") from parser_errors[0]
 
     claims = _read_json_batches(CLAIMS_DIR)
     if not claims:
@@ -294,29 +357,32 @@ def _run_deepagents_demo_audit(progress_callback=None, pdf_filename: str = "atla
     })
 
     tracer_agent = create_tracer_subagent()
+    claim_batch_files = _claim_batch_files()
     _emit(progress_callback, "phase", {
         "phase": "trace_sources",
         "message": "Tracer subagent resolving claims to source evidence...",
     })
     _emit(progress_callback, "agent_start", {
         "agent": "Tracer",
-        "task": f"Tracing {len(claims)} extracted claims",
+        "task": f"Tracing {len(claims)} extracted claims across {len(claim_batch_files)} claim batches",
     })
-    tracer_agent.invoke({
-        "messages": [{
-            "role": "user",
-            "content": (
-                "Load every claim batch using list_claim_files and read_claim_file. "
-                "Trace and validate every claim using the available source tools. "
-                "Write one combined evidence array via write_evidence with batch_name=\"batch_1\". "
-                "Return a short summary after saving the evidence."
-            ),
-        }],
-    })
+
+    tracer_results = asyncio.run(
+        _trace_all(
+            tracer_agent,
+            claim_batch_files,
+            asyncio.Semaphore(TRACER_CONCURRENCY),
+            progress_callback,
+        )
+    )
+    tracer_errors = [result for result in tracer_results if isinstance(result, Exception)]
+    if tracer_errors:
+        raise RuntimeError(f"Deepagents tracer batch failed: {tracer_errors[0]}") from tracer_errors[0]
 
     findings = _read_json_batches(EVIDENCE_DIR)
     if not findings:
         raise RuntimeError("Deepagents tracer produced no evidence")
+    findings = _detect_cross_batch_ambiguity(findings)
 
     for index, finding in enumerate(findings, start=1):
         _emit(progress_callback, "agent_progress", {
@@ -361,6 +427,8 @@ def _run_deepagents_demo_audit(progress_callback=None, pdf_filename: str = "atla
         "message": "Report complete — evidence package ready",
     })
     _emit(progress_callback, "complete", {
+        "pipeline": report["audit_metadata"]["pipeline"],
+        "parser_mode": report["audit_metadata"]["parser_mode"],
         "summary": summary,
         "evidence": report["findings"],
         "total_findings": len(findings),
@@ -379,7 +447,30 @@ def get_atlas_orchestrator():
 
 def run_live_llm_audit(progress_callback=None, pdf_filename: str = "atlas_sustainability_statement.pdf") -> dict:
     """Run the live audit using deepagents workers, with deterministic fallback."""
-    from pipeline import _emit, run_full_audit
+    from pipeline import _emit, run_full_audit, run_generic_audit
+
+    pipeline_mode = get_pipeline_mode()
+    if pipeline_mode == "generic":
+        _emit(progress_callback, "status", {
+            "message": "Generic pipeline mode forced. Running generic_v1 pipeline.",
+            "mode": "live_generic",
+            "pipeline": "generic_v1",
+        })
+        return run_generic_audit(
+            pdf_filename=pdf_filename,
+            progress_callback=progress_callback,
+        )
+
+    if pipeline_mode == "legacy":
+        _emit(progress_callback, "status", {
+            "message": "Legacy pipeline mode forced. Running deterministic pipeline.",
+            "mode": "live_deterministic",
+            "pipeline": "deterministic",
+        })
+        return run_full_audit(
+            pdf_filename=pdf_filename,
+            progress_callback=progress_callback,
+        )
 
     try:
         return _run_deepagents_demo_audit(

@@ -1,6 +1,8 @@
 deepagents
+chardet
 langchain-deepseek
 pymupdf
+pyyaml
 openpyxl
 pandas
 fastapi
