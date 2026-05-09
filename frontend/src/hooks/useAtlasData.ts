@@ -46,7 +46,7 @@ export function useAtlasData() {
 
   const addFeedEntry = useCallback((agent: string, message: string) => {
     const now = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-    setFeed(prev => [{ agent, timestamp: now, message }, ...prev].slice(0, 50));
+    setFeed(prev => [{ agent, timestamp: now, message }, ...prev]);
   }, []);
 
   const clearRunState = useCallback(() => {
