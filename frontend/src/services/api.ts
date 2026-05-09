@@ -6,6 +6,7 @@
 // ── Types ────────────────────────────────────────────────────────────────
 
 export interface Evidence {
+  claim_id?: string;
   page: number;
   flag: 'green' | 'yellow' | 'red' | 'grey';
   claim_text: string;

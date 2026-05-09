@@ -6,13 +6,15 @@ Two modes:
 """
 
 import asyncio
+from datetime import datetime, timezone
 import json
 import logging
 import os
+import re
 import shutil
 import time
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 from contextlib import asynccontextmanager
 
@@ -22,7 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 import uvicorn
 
-from input_bundle import get_input_dir
+from input_bundle import get_input_dir, get_statement_filename, load_audit_manifest
 
 load_dotenv()
 
@@ -37,6 +39,7 @@ REPORT_PATH = WORKSPACE / "audit_report.json"
 INPUT_DIR = get_input_dir(WORKSPACE)
 
 MOCK_MODE = os.environ.get("MOCK_MODE", "true").lower() in ("1", "true", "yes")
+MOCK_SSE_DELAY_SECONDS = max(0.05, float(os.environ.get("MOCK_SSE_DELAY_SECONDS", "0.75")))
 
 logging.basicConfig(
     level=os.environ.get("ATLAS_LOG_LEVEL", "INFO"),
@@ -256,6 +259,234 @@ def _compute_summary(findings: list) -> dict:
     }
 
 
+def _load_report_file() -> dict[str, Any] | None:
+    if not REPORT_PATH.exists():
+        return None
+
+    try:
+        payload = json.loads(REPORT_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, IOError):
+        return None
+
+    return payload if isinstance(payload, dict) else None
+
+
+def _parse_mock_page(description: str, default_page: int) -> int:
+    match = re.search(r"p\.(\d+)", description, re.IGNORECASE)
+    if match:
+        return int(match.group(1))
+    return default_page
+
+
+def _severity_to_flag(severity: str) -> str:
+    normalized = (severity or "").strip().upper()
+    return {
+        "RED": "red",
+        "YELLOW": "yellow",
+        "MISSING": "grey",
+        "GREEN": "green",
+    }.get(normalized, "grey")
+
+
+def _compute_deviation_pct(claimed_value: float | int | None, source_value: float | int | None) -> float | None:
+    if not isinstance(claimed_value, (int, float)) or not isinstance(source_value, (int, float)):
+        return None
+    if claimed_value == 0:
+        return None
+    return round(abs(claimed_value - source_value) / abs(claimed_value) * 100, 1)
+
+
+def _legacy_mock_findings() -> list[dict[str, Any]]:
+    return sorted(MOCK_EVIDENCE, key=_finding_page_sort_key)
+
+
+def _manifest_mock_findings(manifest: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not manifest:
+        return []
+
+    expected = manifest.get("expected_findings")
+    flags = expected.get("flags") if isinstance(expected, dict) else None
+    if not isinstance(flags, list):
+        return []
+
+    overrides: dict[int, dict[str, Any]] = {
+        1: {
+            "data_point": "scope2_market_based_total",
+            "claim_text": "Scope 2 market-based total reported in the sustainability statement",
+            "claimed_value": 47.0,
+            "source_value": 44.8,
+            "unit": "ktCO2e",
+            "source_file": "GHG_calculation_workbook.xlsx",
+            "source_sheet": "Scope2_electricity",
+            "source_cell": "market-based total",
+            "page": 34,
+        },
+        2: {
+            "data_point": "scope12_market_based_total",
+            "claim_text": "Total Scope 1+2 market-based emissions reported in the sustainability statement",
+            "claimed_value": 359.0,
+            "source_value": 335.0,
+            "unit": "ktCO2e",
+            "source_file": "GHG_calculation_workbook.xlsx",
+            "source_sheet": "Reconciliation_summary",
+            "source_cell": "market-based total",
+            "page": 33,
+        },
+        3: {
+            "data_point": "eu_taxonomy_revenue_alignment_scope_mismatch",
+            "claim_text": "EU Taxonomy revenue alignment is disclosed with two different scope bases",
+            "claimed_value": 52.0,
+            "source_value": 29.3,
+            "unit": "%",
+            "source_file": "siemens_E1_excerpt.pdf",
+            "source_sheet": None,
+            "source_cell": "p.19",
+            "deviation_pct": None,
+            "page": 19,
+        },
+        4: {
+            "data_point": "scope3_category7_employee_commuting",
+            "claim_text": "Employee commuting emissions reported in the PDF require support from the workbook",
+            "claimed_value": 177.0,
+            "source_value": None,
+            "unit": "ktCO2e",
+            "source_file": "GHG_calculation_workbook.xlsx",
+            "source_sheet": "Scope3_categories",
+            "source_cell": "row 3.7",
+            "page": 33,
+        },
+        5: {
+            "data_point": "carbon_credits_certificate_url",
+            "claim_text": "Cancelled carbon credits require independently verifiable certificate URLs",
+            "claimed_value": None,
+            "source_value": None,
+            "unit": "supporting document",
+            "source_file": "carbon_credits_register.xlsx",
+            "source_sheet": "Plan Vivo rows",
+            "source_cell": "certificate_url",
+            "page": 34,
+        },
+    }
+
+    findings: list[dict[str, Any]] = []
+    for raw_flag in flags:
+        if not isinstance(raw_flag, dict):
+            continue
+
+        finding_id = int(raw_flag.get("id", len(findings) + 1))
+        description = str(raw_flag.get("description", "")).strip()
+        override = overrides.get(finding_id, {})
+        claimed_value = override.get("claimed_value")
+        source_value = override.get("source_value")
+        flag = _severity_to_flag(str(raw_flag.get("severity", "MISSING")))
+
+        findings.append(
+            {
+                "claim_id": f"mock_flag_{finding_id}",
+                "page": override.get("page", _parse_mock_page(description, finding_id)),
+                "flag": flag,
+                "claim_text": override.get("claim_text", description),
+                "data_point": override.get("data_point", f"mock_finding_{finding_id}"),
+                "claimed_value": claimed_value,
+                "source_value": source_value,
+                "unit": override.get("unit", ""),
+                "source_file": override.get("source_file"),
+                "source_sheet": override.get("source_sheet"),
+                "source_cell": override.get("source_cell"),
+                "deviation_pct": override.get(
+                    "deviation_pct",
+                    _compute_deviation_pct(claimed_value, source_value),
+                ),
+                "explanation": description,
+                "review_required": flag != "green",
+            }
+        )
+
+    return sorted(findings, key=_finding_page_sort_key)
+
+
+def _mock_document_inventory(manifest: dict[str, Any] | None) -> list[dict[str, Any]]:
+    manifest_roles: dict[str, str] = {}
+    if manifest:
+        statement = manifest.get("statement_document")
+        if isinstance(statement, dict):
+            statement_path = str(statement.get("path", "")).strip()
+            if statement_path:
+                manifest_roles[Path(statement_path).name] = str(statement.get("type", "sustainability_statement"))
+
+        evidence_files = manifest.get("evidence_files")
+        if isinstance(evidence_files, list):
+            for item in evidence_files:
+                if not isinstance(item, dict):
+                    continue
+                evidence_path = str(item.get("path", "")).strip()
+                if evidence_path:
+                    manifest_roles[Path(evidence_path).name] = str(item.get("type", "supporting_document"))
+
+    return [
+        {
+            "filename": path.name,
+            "type": path.suffix,
+            "size_kb": round(path.stat().st_size / 1024, 1),
+            "role": manifest_roles.get(path.name, "input_document"),
+        }
+        for path in sorted(INPUT_DIR.glob("*"))
+        if path.is_file()
+    ]
+
+
+def _build_mock_report() -> dict[str, Any]:
+    manifest = load_audit_manifest(WORKSPACE)
+    findings = _manifest_mock_findings(manifest) or _legacy_mock_findings()
+    summary = _compute_summary(findings)
+    now = datetime.now(timezone.utc).isoformat()
+    statement_filename = get_statement_filename(
+        default_filename="atlas_sustainability_statement.pdf",
+        workspace_dir=WORKSPACE,
+    ) or "atlas_sustainability_statement.pdf"
+
+    return {
+        "audit_metadata": {
+            "document": statement_filename,
+            "standard": "ESRS E1 — Climate Change",
+            "framework": "EU CSRD",
+            "pipeline": "mock",
+            "parser_mode": "scripted-manifest",
+            "started_at": now,
+            "completed_at": now,
+            "total_pages": max((_finding_page_sort_key(item) for item in findings), default=0),
+            "total_claims_found": len(findings),
+            "total_findings": len(findings),
+            "audit_id": manifest.get("audit_id") if isinstance(manifest, dict) else None,
+            "client_name": manifest.get("client_name") if isinstance(manifest, dict) else None,
+            "fiscal_year": manifest.get("fiscal_year") if isinstance(manifest, dict) else None,
+        },
+        "document_inventory": _mock_document_inventory(manifest),
+        "findings": findings,
+        "summary": summary,
+        "red_flags": summary.get("red_flags", []),
+        "review_required": summary.get("review_required", False),
+    }
+
+
+def _write_mock_outputs(report: dict[str, Any]) -> dict[str, Any]:
+    CLAIMS_DIR.mkdir(parents=True, exist_ok=True)
+    EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    (EVIDENCE_DIR / "all_evidence.json").write_text(
+        json.dumps(report.get("findings", []), indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    return report
+
+
+async def _mock_pause(request: Request, multiplier: float = 1.0) -> bool:
+    if await request.is_disconnected():
+        return False
+    await asyncio.sleep(MOCK_SSE_DELAY_SECONDS * multiplier)
+    return not await request.is_disconnected()
+
+
 def _sse_event(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
@@ -459,7 +690,15 @@ async def health_check():
 async def get_evidence():
     """Return all evidence with summary."""
     if MOCK_MODE:
-        findings = MOCK_EVIDENCE
+        report = _load_report_file()
+        findings = report.get("findings", []) if report else []
+        summary = report.get("summary", _compute_summary([])) if report else _compute_summary([])
+        return JSONResponse(
+            {
+                "evidence": sorted(findings, key=_finding_page_sort_key),
+                "summary": summary,
+            }
+        )
     else:
         findings = _collect_evidence_files()
         if not findings and REPORT_PATH.exists():
@@ -505,6 +744,17 @@ async def upload_inputs(files: list[UploadFile] = File(...)):
 @app.get("/report")
 async def get_report():
     """Return the full audit report (evidence package)."""
+    if MOCK_MODE:
+        report = _load_report_file()
+        if report is not None:
+            return JSONResponse(report)
+        return JSONResponse(
+            {
+                "error": "No mock audit report generated yet. Run POST /audit or start the SSE stream first."
+            },
+            status_code=404,
+        )
+
     # A6 — Proper error handling and full report structure
     if REPORT_PATH.exists():
         try:
@@ -530,14 +780,16 @@ async def run_audit():
     """Trigger audit — mock (instant) or live (deterministic pipeline)."""
     if MOCK_MODE:
         logger.info("POST /audit in mock mode")
-        summary = _compute_summary(MOCK_EVIDENCE)
+        report = _write_mock_outputs(_build_mock_report())
         return JSONResponse(
             {
                 "mode": "mock",
-                "evidence": sorted(MOCK_EVIDENCE, key=_finding_page_sort_key),
-                "summary": summary,
-                "review_required": summary.get("review_required", False),
-                "red_flags": summary.get("red_flags", []),
+                "pipeline": report.get("audit_metadata", {}).get("pipeline"),
+                "audit_metadata": report.get("audit_metadata", {}),
+                "evidence": sorted(report.get("findings", []), key=_finding_page_sort_key),
+                "summary": report.get("summary", {}),
+                "review_required": report.get("review_required", False),
+                "red_flags": report.get("red_flags", []),
             }
         )
 
@@ -603,235 +855,251 @@ async def stream_audit(request: Request):
 
 
 async def _mock_stream(request: Request) -> AsyncGenerator[str, None]:
-    """Cinematic SSE stream for live demos — uses the fixed event taxonomy."""
-    yield _sse_event(
-        "status", {"message": "Atlas CSRD Audit Engine initializing...", "mode": "mock"}
-    )
-    await asyncio.sleep(0.3)
-
-    # Phase: catalog_inputs
-    yield _sse_event(
-        "phase", {"phase": "catalog_inputs", "message": "Cataloging input documents..."}
-    )
-    await asyncio.sleep(0.3)
-    input_files = [
-        {"name": "atlas_sustainability_statement.pdf", "size_kb": 35.7, "type": ".pdf"},
-        {"name": "energia_2024.xlsx", "size_kb": 5.7, "type": ".xlsx"},
-        {"name": "energia_szamla_Q4.pdf", "size_kb": 3.5, "type": ".pdf"},
-        {"name": "hr_export_2024.csv", "size_kb": 47.7, "type": ".csv"},
-        {"name": "scope3_szallito.xlsx", "size_kb": 5.1, "type": ".xlsx"},
+    """Manifest-driven SSE stream for mock mode with slow, readable demo pacing."""
+    report = _build_mock_report()
+    findings = report.get("findings", [])
+    summary = report.get("summary", {})
+    manifest = load_audit_manifest(WORKSPACE) or {}
+    inventory = report.get("document_inventory", [])
+    todo_items = [
+        f"Reproduce expected finding {item.get('id')}: {item.get('description')}"
+        for item in (manifest.get("expected_findings", {}).get("flags", []) if isinstance(manifest, dict) else [])
+        if isinstance(item, dict)
     ]
+
+    yield _sse_event(
+        "status",
+        {
+            "message": "Atlas CSRD Audit Engine initializing mock pipeline from audit_index.json...",
+            "mode": "mock",
+            "pipeline": "mock",
+        },
+    )
+    if not await _mock_pause(request, 1.1):
+        return
+
+    yield _sse_event(
+        "phase",
+        {"phase": "catalog_inputs", "message": "Cataloging mock input documents..."},
+    )
+    if not await _mock_pause(request, 0.8):
+        return
+
+    for item in inventory:
+        yield _sse_event(
+            "file_found",
+            {"filename": item.get("filename"), "role": item.get("role")},
+        )
+        if not await _mock_pause(request, 0.55):
+            return
+
     yield _sse_event(
         "phase",
         {
             "phase": "catalog_inputs",
-            "message": f"Found {len(input_files)} input files",
-            "files": input_files,
+            "message": f"Found {len(inventory)} mock input files",
+            "files": inventory,
         },
     )
-    await asyncio.sleep(0.3)
+    if not await _mock_pause(request, 0.9):
+        return
 
-    # Phase: build_audit_plan
     yield _sse_event(
         "phase",
         {
             "phase": "build_audit_plan",
-            "message": "Building audit plan for ESRS E1 — Climate Change",
+            "message": "Loading scripted audit plan from audit_index.json...",
         },
     )
-    todos = [
-        "Analyze PDF structure (ESRS E1 claims)",
-        "Extract all numerical claims from sustainability statement",
-        "Trace scope1_emission → energia_2024.xlsx (Scope1_Scope2 / Scope1_tonna)",
-        "Trace scope2_emission → energia_2024.xlsx (Scope1_Scope2 / Scope2_tonna)",
-        "Trace scope1_scope2_total → energia_2024.xlsx (Scope1_Scope2) — computed field",
-        "Trace renewable_pct → energia_2024.xlsx (Megujulo / Arany)",
-        "Trace headcount → hr_export_2024.csv (CSV row count)",
-        "Trace scope3_emission → scope3_szallito.xlsx (Scope3 / Kibocsatas (tonna))",
-        "Trace training_participants — NO SOURCE (manual verification needed)",
-        "Trace production_sites — NO SOURCE (manual verification needed)",
-        "Run deterministic validation on all claims",
-        "Generate audit evidence package (audit_report.json)",
-    ]
-    yield _sse_event("todo", {"items": todos, "total": len(todos)})
-    await asyncio.sleep(0.3)
+    if todo_items:
+        yield _sse_event("todo", {"items": todo_items, "total": len(todo_items)})
+        if not await _mock_pause(request, 1.0):
+            return
+
     yield _sse_event(
         "phase",
         {
             "phase": "build_audit_plan",
-            "message": "Audit plan ready — 8 claim patterns, 8 data points with source mappings",
+            "message": f"Mock plan ready — {len(findings)} expected findings scripted from the manifest",
         },
     )
-    await asyncio.sleep(0.3)
+    if not await _mock_pause(request, 0.9):
+        return
 
-    # Phase: parse_claims (Parser agent)
     yield _sse_event(
         "phase",
         {
             "phase": "parse_claims",
-            "message": "Parser analyzing sustainability statement...",
+            "message": "Parser loading scripted checks from audit_index.json...",
         },
     )
     yield _sse_event(
         "agent_start",
         {
             "agent": "Parser",
-            "task": "Extracting ESRS E1 claims from atlas_sustainability_statement.pdf",
+            "task": "Loading scripted expected findings from audit_index.json",
         },
     )
-    await asyncio.sleep(0.3)
-    claim_progress = [
-        ("production_sites", 3, "db", 4),
-        ("scope1_emission", 1850, "tCO2e", 6),
-        ("scope2_emission", 4200, "tCO2e", 7),
-        ("scope1_scope2_total", 6050, "tCO2e", 7),
-        ("scope3_emission", 18400, "tCO2e", 8),
-        ("renewable_pct", 67, "%", 9),
-        ("headcount", 2340, "fő", 10),
-        ("training_participants", 1240, "fő", 11),
-    ]
-    for i, (dp, val, unit, page) in enumerate(claim_progress):
+    if not await _mock_pause(request, 0.8):
+        return
+
+    for index, finding in enumerate(findings, start=1):
         yield _sse_event(
             "agent_progress",
             {
                 "agent": "Parser",
-                "data_point": dp,
-                "claimed_value": val,
-                "unit": unit,
-                "page": page,
-                "progress": f"{i + 1}/{len(claim_progress)}",
+                "message": f"Anchored mock check {index}/{len(findings)}: {finding.get('data_point')}",
             },
         )
-        await asyncio.sleep(0.15)
-    yield _sse_event("agent_done", {"agent": "Parser", "claims_found": 8})
-    yield _sse_event(
-        "phase",
-        {"phase": "parse_claims", "message": "Parsing complete — 8 claims extracted"},
-    )
-    await asyncio.sleep(0.3)
+        if not await _mock_pause(request, 0.6):
+            return
 
-    # Phase: trace_sources (Tracer agent)
+    yield _sse_event(
+        "agent_done",
+        {
+            "agent": "Parser",
+            "claims_found": len(findings),
+            "message": f"Loaded {len(findings)} scripted findings from audit_index.json",
+        },
+    )
+    if not await _mock_pause(request, 0.9):
+        return
+
     yield _sse_event(
         "phase",
-        {"phase": "trace_sources", "message": "Tracer resolving source documents..."},
+        {
+            "phase": "trace_sources",
+            "message": "Tracer replaying expected evidence outcomes...",
+        },
     )
     yield _sse_event(
         "agent_start",
-        {"agent": "Tracer", "task": "Tracing 8 claims to source documents"},
+        {
+            "agent": "Tracer",
+            "task": f"Replaying {len(findings)} expected findings from the manifest",
+        },
     )
-    await asyncio.sleep(0.3)
-    tracer_items = [
-        ("production_sites", None, "grey"),
-        ("scope1_emission", "energia_2024.xlsx / Scope1_Scope2 / B5", "green"),
-        ("scope2_emission", "energia_2024.xlsx / Scope1_Scope2 / C5", "red"),
-        ("scope1_scope2_total", "energia_2024.xlsx / Scope1_Scope2 / computed", "red"),
-        ("scope3_emission", "scope3_szallito.xlsx / Scope3 / C6", "green"),
-        ("renewable_pct", "energia_2024.xlsx / Megujulo / D2", "green"),
-        ("headcount", "hr_export_2024.csv", "yellow"),
-        ("training_participants", None, "grey"),
-    ]
-    for i, (dp, source, flag) in enumerate(tracer_items):
+    if not await _mock_pause(request, 0.8):
+        return
+
+    for index, finding in enumerate(findings, start=1):
+        source_label = finding.get("source_file") or "supporting evidence gap"
         yield _sse_event(
             "agent_progress",
             {
                 "agent": "Tracer",
-                "data_point": dp,
-                "claimed_value": next(c[1] for c in claim_progress if c[0] == dp),
-                "progress": f"{i + 1}/{len(tracer_items)}",
+                "message": f"Checking {finding.get('data_point')} against {source_label} ({index}/{len(findings)})",
             },
         )
-        await asyncio.sleep(0.15)
-        if flag == "red":
-            dev = 10.53 if dp == "scope2_emission" else 7.08
-            yield _sse_event(
-                "finding",
-                {
-                    "agent": "Tracer",
-                    "data_point": dp,
-                    "flag": "red",
-                    "claimed_value": 4200 if dp == "scope2_emission" else 6050,
-                    "source_value": 3800 if dp == "scope2_emission" else 5650,
-                    "deviation_pct": dev,
-                    "message": f"DISCREPANCY — {dev}% deviation",
-                },
-            )
-            await asyncio.sleep(0.3)
+        if not await _mock_pause(request, 0.6):
+            return
+        yield _sse_event(
+            "finding",
+            {
+                "agent": "Tracer",
+                "data_point": finding.get("data_point"),
+                "flag": finding.get("flag"),
+                "claimed_value": finding.get("claimed_value"),
+                "source_value": finding.get("source_value"),
+                "deviation_pct": finding.get("deviation_pct"),
+                "message": finding.get("explanation"),
+            },
+        )
+        if not await _mock_pause(request, 0.95):
+            return
+
     yield _sse_event(
         "agent_done",
-        {"agent": "Tracer", "findings": 8, "sources_resolved": 6},
+        {
+            "agent": "Tracer",
+            "findings": len(findings),
+            "sources_resolved": sum(1 for item in findings if item.get("source_file")),
+            "message": f"Replayed {len(findings)} expected findings from audit_index.json",
+        },
     )
-    yield _sse_event(
-        "phase", {"phase": "trace_sources", "message": "Trace complete — 8 findings"}
-    )
-    await asyncio.sleep(0.3)
+    if not await _mock_pause(request, 0.8):
+        return
 
-    # Phase: validate_findings (Validator agent)
     yield _sse_event(
         "phase",
         {
             "phase": "validate_findings",
-            "message": "Validator running deterministic checks...",
+            "message": "Validator confirming the scripted perfect mock result...",
         },
     )
     yield _sse_event(
         "agent_start",
         {
             "agent": "Validator",
-            "task": "Running deterministic validation on all findings",
+            "task": "Summarizing scripted findings for the mock report",
         },
     )
-    await asyncio.sleep(0.2)
+    if not await _mock_pause(request, 0.55):
+        return
     yield _sse_event(
         "agent_progress",
-        {"agent": "Validator", "green": 3, "yellow": 1, "red": 2, "grey": 2},
+        {
+            "agent": "Validator",
+            "green": summary.get("green_count", 0),
+            "yellow": summary.get("yellow_count", 0),
+            "red": summary.get("red_count", 0),
+            "grey": summary.get("grey_count", 0),
+        },
     )
-    await asyncio.sleep(0.2)
+    if not await _mock_pause(request, 0.75):
+        return
     yield _sse_event(
         "agent_done",
         {
             "agent": "Validator",
-            "message": "Validation complete — 3 green, 1 yellow, 2 red, 2 grey",
+            "message": (
+                f"Validation complete — {summary.get('green_count', 0)} green, "
+                f"{summary.get('yellow_count', 0)} yellow, {summary.get('red_count', 0)} red, "
+                f"{summary.get('grey_count', 0)} grey"
+            ),
         },
     )
-    yield _sse_event(
-        "phase",
-        {
-            "phase": "validate_findings",
-            "message": "Validation complete — 2 material misstatements",
-        },
-    )
-    await asyncio.sleep(0.3)
+    if not await _mock_pause(request, 0.85):
+        return
 
-    # Phase: build_report (Reporter agent)
     yield _sse_event(
         "phase",
-        {"phase": "build_report", "message": "Reporter assembling evidence package..."},
+        {"phase": "build_report", "message": "Reporter assembling the perfect mock evidence package..."},
     )
     yield _sse_event(
         "agent_start",
-        {"agent": "Reporter", "task": "Building audit report and evidence package"},
+        {"agent": "Reporter", "task": "Writing mock audit report and evidence package"},
     )
-    await asyncio.sleep(0.2)
+    if not await _mock_pause(request, 0.65):
+        return
+
+    _write_mock_outputs(report)
+
     yield _sse_event(
         "agent_done",
-        {"agent": "Reporter", "message": "Evidence package saved to audit_report.json"},
+        {"agent": "Reporter", "message": "Mock evidence package saved to audit_report.json"},
     )
+    if not await _mock_pause(request, 0.65):
+        return
+
     yield _sse_event(
         "phase",
         {
             "phase": "build_report",
-            "message": "Report complete — evidence package ready",
+            "message": "Mock report complete — 5 expected findings reproduced from audit_index.json",
         },
     )
-    await asyncio.sleep(0.3)
+    if not await _mock_pause(request, 0.8):
+        return
 
-    # Complete — same structure as live stream
-    summary = _compute_summary(MOCK_EVIDENCE)
     yield _sse_event(
         "complete",
         {
+            "pipeline": report["audit_metadata"]["pipeline"],
+            "parser_mode": report["audit_metadata"]["parser_mode"],
             "summary": summary,
-            "total_findings": 8,
+            "evidence": report.get("findings", []),
+            "total_findings": len(findings),
             "review_required": summary.get("review_required", False),
         },
     )

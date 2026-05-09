@@ -1,5 +1,6 @@
 import { AuditCard } from './AuditCard';
 import { type Evidence } from '../../services/api';
+import { getEvidenceKey } from '../../utils/evidenceKey';
 
 interface Props {
   evidence: Evidence[];
@@ -14,8 +15,8 @@ export const RegulatoryExtracts = ({ evidence }: Props) => {
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 p-2">
-        {evidence.map((item) => (
-          <AuditCard key={`${item.data_point}-${item.page}`} extract={item} />
+        {evidence.map((item, index) => (
+          <AuditCard key={getEvidenceKey(item, index)} extract={item} />
         ))}
       </div>
     </div>

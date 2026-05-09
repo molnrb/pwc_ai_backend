@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileJson } from 'lucide-react';
 import { downloadReportPackage, type Evidence, type Summary } from '../../services/api';
+import { getEvidenceKey } from '../../utils/evidenceKey';
 
 interface Props {
   evidence: Evidence[];
@@ -80,12 +81,12 @@ export const SourceTraceTable = ({ evidence, summary }: Props) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-white/[0.03]">
-            {evidence.map((row) => {
+            {evidence.map((row, index) => {
               const flagStyle = FLAG_LABEL_MAP[row.flag || 'grey'] || FLAG_LABEL_MAP.grey;
               const sourceValueLabel = row.source_value === null ? 'N/A' : `${row.source_value.toLocaleString()} ${row.unit}`;
               const deviationLabel = row.deviation_pct === null ? 'N/A' : `${row.deviation_pct}%`;
               return (
-                <tr key={`${row.data_point}-${row.page}-${row.paragraph_idx ?? 0}-${row.source_cell ?? 'no-source'}`} className="hover:bg-white/[0.01] transition-colors group min-h-[48px]">
+                <tr key={getEvidenceKey(row, index)} className="hover:bg-white/[0.01] transition-colors group min-h-[48px]">
                   <td className="py-4 px-4">
                     <span className={`inline-block px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-sm border ${flagStyle.color}`}>
                       {flagStyle.label}

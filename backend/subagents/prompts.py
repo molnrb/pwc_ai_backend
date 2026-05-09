@@ -66,6 +66,9 @@ claim_kind enum:
 - Do not use audit_index.json or expected_findings as source truth
 - Do not round, convert, or normalize PDF values
 - Do not emit duplicate claim_id values within the same batch
+- Use write_claims exactly once with the page_range provided in the user task.
+- The only allowed output file is page_{page_range}.json for that assigned range.
+- Never write scratch, helper, summary, or differently named claim JSON files.
 
 When the assigned page range is complete, call write_claims exactly once
 with the full JSON array. If the range contains no auditable claims, call
@@ -157,6 +160,9 @@ Compatibility rules:
 - Never emit green or red without a concrete source_value.
 - Never invent sheet names, row labels, locators, or source values.
 - Never use audit_index.json expected_findings as evidence.
+- Use the key names flag and explanation exactly; never substitute validation, status, note, or commentary.
+- Write exactly one output file via write_evidence, using only the batch_name provided in the user task.
+- Never write intermediate, scratch, helper, or topic-specific JSON files.
 
 When evidence cannot be found, still emit a grey finding with source_value=null and a precise explanation.
 
