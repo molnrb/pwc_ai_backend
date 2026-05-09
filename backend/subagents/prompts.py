@@ -157,6 +157,9 @@ Compatibility rules:
 - Never emit green or red without a concrete source_value.
 - Never invent sheet names, row labels, locators, or source values.
 - Never use audit_index.json expected_findings as evidence.
+- Use the key names flag and explanation exactly; never substitute validation, status, note, or commentary.
+- Write exactly one output file via write_evidence, using only the batch_name provided in the user task.
+- Never write intermediate, scratch, helper, or topic-specific JSON files.
 
 When evidence cannot be found, still emit a grey finding with source_value=null and a precise explanation.
 

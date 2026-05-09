@@ -1,30 +1,30 @@
 [
   {
-    "claim_id": "p10_par9_scope1_2_reduction_target_2030",
-    "data_point": "scope1_2_reduction_target_2030",
+    "claim_id": "p10_par9_scope1_2_reduction_target",
+    "data_point": "scope1_2_reduction_target",
     "claim_kind": "target",
     "claimed_value": 90,
     "unit": "%",
     "page": 10,
     "paragraph_idx": 9,
     "source_hint": null,
-    "claim_text": "reducing absolute GHG emissions from our own operations by 90% ... by fiscal 2030 compared to fiscal 2019",
+    "claim_text": "reducing absolute GHG emissions from our own operations by 90%",
     "period": "FY2030"
   },
   {
-    "claim_id": "p10_par9_scope3_reduction_target_2030",
-    "data_point": "scope3_reduction_target_2030",
+    "claim_id": "p10_par9_scope3_reduction_target",
+    "data_point": "scope3_reduction_target",
     "claim_kind": "target",
     "claimed_value": 30,
     "unit": "%",
     "page": 10,
     "paragraph_idx": 9,
     "source_hint": null,
-    "claim_text": "reducing ... from our value chain by 30% by fiscal 2030 compared to fiscal 2019",
+    "claim_text": "from our value chain by 30% by fiscal 2030 compared to fiscal 2019",
     "period": "FY2030"
   },
   {
-    "claim_id": "p10_par9_scope1_2_3_reduction_target_2050",
+    "claim_id": "p10_par9_netzero_2050_reduction",
     "data_point": "scope1_2_3_reduction_target_2050",
     "claim_kind": "target",
     "claimed_value": 90,
@@ -48,9 +48,9 @@
     "period": "FY2050"
   },
   {
-    "claim_id": "p10_par9_scope3_1_5c_target_hypothetical",
-    "data_point": "scope3_1_5c_target_hypothetical",
-    "claim_kind": "target",
+    "claim_id": "p10_par9_scope3_1_5c_target_required",
+    "data_point": "scope3_1_5c_aligned_reduction_required",
+    "claim_kind": "reported_metric",
     "claimed_value": 46.2,
     "unit": "%",
     "page": 10,
@@ -85,19 +85,19 @@
   },
   {
     "claim_id": "p10_par21_siemens_wshs_scope1_2_reduction",
-    "data_point": "siemens_wshs_scope1_2_reduction",
+    "data_point": "scope1_2_reduction_progress",
     "claim_kind": "reported_metric",
     "claimed_value": 66,
     "unit": "%",
     "page": 10,
     "paragraph_idx": 21,
     "source_hint": null,
-    "claim_text": "Siemens w/o SHS achieved an overall reduction of 66% for Scope 1 & 2 emissions compared to the base year 2019 (691 ktCO2e)",
+    "claim_text": "Siemens w/o SHS achieved an overall reduction of 66% for Scope 1 & 2 emissions compared to the base year 2019",
     "period": "FY2025"
   },
   {
     "claim_id": "p10_par21_siemens_wshs_scope1_2_baseline",
-    "data_point": "siemens_wshs_scope1_2_baseline",
+    "data_point": "scope1_2_baseline_emissions",
     "claim_kind": "reported_metric",
     "claimed_value": 691,
     "unit": "ktCO2e",
@@ -108,20 +108,20 @@
     "period": "FY2019"
   },
   {
-    "claim_id": "p10_par21_healthineers_scope1_2_reduction",
-    "data_point": "healthineers_scope1_2_reduction",
+    "claim_id": "p10_par21_shs_scope1_2_reduction",
+    "data_point": "scope1_2_reduction_progress",
     "claim_kind": "reported_metric",
     "claimed_value": 49,
     "unit": "%",
     "page": 10,
     "paragraph_idx": 21,
     "source_hint": null,
-    "claim_text": "Siemens Healthineers demonstrated progress with a 49% reduction in emissions from their base year values (247 ktCO2e)",
+    "claim_text": "Siemens Healthineers demonstrated progress with a 49% reduction in emissions from their base year values",
     "period": "FY2025"
   },
   {
-    "claim_id": "p10_par21_healthineers_scope1_2_baseline",
-    "data_point": "healthineers_scope1_2_baseline",
+    "claim_id": "p10_par21_shs_scope1_2_baseline",
+    "data_point": "scope1_2_baseline_emissions",
     "claim_kind": "reported_metric",
     "claimed_value": 247,
     "unit": "ktCO2e",
@@ -133,19 +133,19 @@
   },
   {
     "claim_id": "p10_par21_siemens_wshs_scope3_reduction",
-    "data_point": "siemens_wshs_scope3_reduction",
+    "data_point": "scope3_reduction_progress",
     "claim_kind": "reported_metric",
     "claimed_value": 11,
     "unit": "%",
     "page": 10,
     "paragraph_idx": 21,
     "source_hint": null,
-    "claim_text": "For Scope 3, Siemens w/o SHS achieved a 11% reduction compared to the base year 2019",
+    "claim_text": "Siemens w/o SHS achieved a 11% reduction compared to the base year 2019",
     "period": "FY2025"
   },
   {
-    "claim_id": "p10_par21_healthineers_scope3_reduction",
-    "data_point": "healthineers_scope3_reduction",
+    "claim_id": "p10_par21_shs_scope3_reduction",
+    "data_point": "scope3_reduction_progress",
     "claim_kind": "reported_metric",
     "claimed_value": 4,
     "unit": "%",
@@ -156,20 +156,32 @@
     "period": "FY2025"
   },
   {
-    "claim_id": "p10_par22_scope3_upstream_change",
-    "data_point": "scope3_upstream_change",
+    "claim_id": "p10_par22_scope3_upstream_target",
+    "data_point": "scope3_upstream_reduction_target",
+    "claim_kind": "target",
+    "claimed_value": 20,
+    "unit": "%",
+    "page": 10,
+    "paragraph_idx": 22,
+    "source_hint": null,
+    "claim_text": "pursue Scope 3 upstream emissions reduction by 20% by fiscal 2030 compared to fiscal 2019",
+    "period": "FY2030"
+  },
+  {
+    "claim_id": "p10_par22_scope3_upstream_fy2025_change",
+    "data_point": "scope3_upstream_emissions_change",
     "claim_kind": "reported_metric",
     "claimed_value": 1,
     "unit": "%",
     "page": 10,
     "paragraph_idx": 22,
     "source_hint": null,
-    "claim_text": "Scope 3 upstream emissions slightly increased by 1% compared to the baseline 2019 value of 8,107 ktCO2e",
+    "claim_text": "Scope 3 upstream emissions slightly increased by 1% compared to the baseline 2019 value",
     "period": "FY2025"
   },
   {
     "claim_id": "p10_par22_scope3_upstream_baseline",
-    "data_point": "scope3_upstream_baseline",
+    "data_point": "scope3_upstream_baseline_emissions",
     "claim_kind": "reported_metric",
     "claimed_value": 8107,
     "unit": "ktCO2e",
@@ -181,7 +193,7 @@
   },
   {
     "claim_id": "p10_par22_purchasing_volume_increase",
-    "data_point": "purchasing_volume_increase",
+    "data_point": "purchasing_volume_change",
     "claim_kind": "reported_metric",
     "claimed_value": 21,
     "unit": "%",
@@ -193,19 +205,19 @@
   },
   {
     "claim_id": "p10_par27_cae_target",
-    "data_point": "cae_target",
+    "data_point": "customer_avoided_emissions_target",
     "claim_kind": "target",
     "claimed_value": 1000,
     "unit": "MtCO2e",
     "page": 10,
     "paragraph_idx": 27,
     "source_hint": null,
-    "claim_text": "achieve >1,000 million metric tons CO2e cumulatively in CAE between fiscal 2023 and fiscal 2030",
+    "claim_text": "target to achieve >1,000 million metric tons CO2e cumulatively in CAE between fiscal 2023 and fiscal 2030",
     "period": "FY2023-FY2030"
   },
   {
     "claim_id": "p10_par27_cae_fy2025",
-    "data_point": "cae_fy2025",
+    "data_point": "customer_avoided_emissions_annual",
     "claim_kind": "reported_metric",
     "claimed_value": 199,
     "unit": "MtCO2e",
@@ -217,7 +229,7 @@
   },
   {
     "claim_id": "p10_par27_cae_cumulative_since_2023",
-    "data_point": "cae_cumulative_since_2023",
+    "data_point": "customer_avoided_emissions_cumulative",
     "claim_kind": "total",
     "claimed_value": 694,
     "unit": "MtCO2e",
@@ -229,7 +241,7 @@
   },
   {
     "claim_id": "p11_par14_cae_baseline_value",
-    "data_point": "cae_baseline_value",
+    "data_point": "customer_avoided_emissions_baseline",
     "claim_kind": "reported_metric",
     "claimed_value": 264,
     "unit": "MtCO2e",
@@ -240,21 +252,9 @@
     "period": "FY2023"
   },
   {
-    "claim_id": "p11_par14_cae_target_value",
-    "data_point": "cae_target_value",
-    "claim_kind": "target",
-    "claimed_value": 1000,
-    "unit": "MtCO2e",
-    "page": 11,
-    "paragraph_idx": 14,
-    "source_hint": null,
-    "claim_text": "Achieve >1,000 Mt cumulatively in Customer Avoided Emissions | Target value | > 1,000",
-    "period": "FY2030"
-  },
-  {
-    "claim_id": "p11_par14_cae_fy2025_value",
-    "data_point": "cae_fy2025_value",
-    "claim_kind": "reported_metric",
+    "claim_id": "p11_par14_cae_fy2025_table",
+    "data_point": "customer_avoided_emissions_cumulative",
+    "claim_kind": "total",
     "claimed_value": 694,
     "unit": "MtCO2e",
     "page": 11,
@@ -264,32 +264,32 @@
     "period": "FY2025"
   },
   {
-    "claim_id": "p11_par27_energy_efficiency_fy2025",
-    "data_point": "energy_efficiency_fy2025",
-    "claim_kind": "reported_metric",
-    "claimed_value": 54,
-    "unit": "%",
-    "page": 11,
-    "paragraph_idx": 27,
-    "source_hint": null,
-    "claim_text": "increased our energy efficiency to 54% compared to fiscal 2021",
-    "period": "FY2025"
-  },
-  {
-    "claim_id": "p11_par27_energy_efficiency_target_value",
-    "data_point": "energy_efficiency_target_value",
+    "claim_id": "p11_par27_energy_efficiency_target",
+    "data_point": "energy_efficiency_improvement_target",
     "claim_kind": "target",
     "claimed_value": 10,
     "unit": "%",
     "page": 11,
     "paragraph_idx": 27,
     "source_hint": null,
-    "claim_text": "already achieved our target value of 10%",
+    "claim_text": "Improve our overall energy efficiency by 10%",
     "period": "FY2030"
   },
   {
-    "claim_id": "p11_par27_energy_reduction_vs_2021",
-    "data_point": "energy_reduction_vs_2021",
+    "claim_id": "p11_par27_energy_efficiency_fy2025",
+    "data_point": "energy_efficiency_improvement_progress",
+    "claim_kind": "reported_metric",
+    "claimed_value": 54,
+    "unit": "%",
+    "page": 11,
+    "paragraph_idx": 27,
+    "source_hint": null,
+    "claim_text": "In fiscal 2025, we increased our energy efficiency to 54% compared to fiscal 2021",
+    "period": "FY2025"
+  },
+  {
+    "claim_id": "p11_par27_energy_reduction_fy2025",
+    "data_point": "energy_consumption_reduction",
     "claim_kind": "reported_metric",
     "claimed_value": 16,
     "unit": "%",
@@ -300,7 +300,7 @@
     "period": "FY2025"
   },
   {
-    "claim_id": "p11_par39_energy_efficiency_baseline",
+    "claim_id": "p11_par39_energy_efficiency_table_baseline",
     "data_point": "energy_efficiency_baseline",
     "claim_kind": "reported_metric",
     "claimed_value": 0,
@@ -312,8 +312,8 @@
     "period": "FY2021"
   },
   {
-    "claim_id": "p11_par39_energy_efficiency_target_table",
-    "data_point": "energy_efficiency_target_table",
+    "claim_id": "p11_par39_energy_efficiency_table_target",
+    "data_point": "energy_efficiency_improvement_target",
     "claim_kind": "target",
     "claimed_value": 10,
     "unit": "%",
@@ -324,8 +324,8 @@
     "period": "FY2030"
   },
   {
-    "claim_id": "p11_par39_energy_efficiency_fy2025_table",
-    "data_point": "energy_efficiency_fy2025_table",
+    "claim_id": "p11_par39_energy_efficiency_table_fy2025",
+    "data_point": "energy_efficiency_improvement_progress",
     "claim_kind": "reported_metric",
     "claimed_value": 54,
     "unit": "%",
@@ -336,19 +336,19 @@
     "period": "FY2025"
   },
   {
-    "claim_id": "p12_par8_renewable_electricity_pct",
-    "data_point": "renewable_electricity_pct",
+    "claim_id": "p12_par8_renewable_electricity_fy2025",
+    "data_point": "renewable_electricity_share",
     "claim_kind": "reported_metric",
     "claimed_value": 86,
     "unit": "%",
     "page": 12,
     "paragraph_idx": 8,
     "source_hint": null,
-    "claim_text": "purchased electricity originated from renewable sources continued to increase and now stands at 86%",
+    "claim_text": "our purchased electricity originated from renewable sources continued to increase and now stands at 86%",
     "period": "FY2025"
   },
   {
-    "claim_id": "p12_par14_fleet_electrification_rate",
+    "claim_id": "p12_par14_fleet_electrification_fy2025",
     "data_point": "fleet_electrification_rate",
     "claim_kind": "reported_metric",
     "claimed_value": 33,
@@ -356,12 +356,12 @@
     "page": 12,
     "paragraph_idx": 14,
     "source_hint": null,
-    "claim_text": "achieved a fleet electrification rate of 33%",
+    "claim_text": "In fiscal 2025, we achieved a fleet electrification rate of 33%",
     "period": "FY2025"
   },
   {
-    "claim_id": "p12_par14_fleet_electrification_baseline",
-    "data_point": "fleet_electrification_baseline",
+    "claim_id": "p12_par14_fleet_electrification_fy2021",
+    "data_point": "fleet_electrification_rate",
     "claim_kind": "reported_metric",
     "claimed_value": 2,
     "unit": "%",

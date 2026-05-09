@@ -127,21 +127,34 @@ def _page_ranges(total_pages: int, batch_size: int = 3) -> list[str]:
     ]
 
 
-def _read_json_batches(directory: Path) -> list[dict[str, Any]]:
+def _normalize_finding(f: dict[str, Any]) -> dict[str, Any]:
+    """Normalize evidence findings from tracer agents that may use non-standard schema fields."""
+    # Map 'validation' -> 'flag' if flag is absent
+    if "flag" not in f and "validation" in f:
+        f = dict(f)
+        f["flag"] = f.pop("validation")
+    # Map 'note' -> 'explanation' if explanation is absent
+    if "explanation" not in f and "note" in f:
+        f = dict(f)
+        f["explanation"] = f.pop("note")
+    return f
+
+
+def _read_json_batches(directory: Path, pattern: str = "*.json") -> list[dict[str, Any]]:
     payload: list[dict[str, Any]] = []
     if not directory.exists():
         return payload
 
-    for path in sorted(directory.glob("*.json")):
+    for path in sorted(directory.glob(pattern)):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             continue
 
         if isinstance(data, list):
-            payload.extend(item for item in data if isinstance(item, dict))
+            payload.extend(_normalize_finding(item) for item in data if isinstance(item, dict))
         elif isinstance(data, dict):
-            payload.append(data)
+            payload.append(_normalize_finding(data))
 
     return payload
 
@@ -200,7 +213,9 @@ def _tracer_batch_message(claim_batch_file: Path, available_files: str) -> dict[
                 f"Only use source files that exist in the active input bundle: {available_files}. "
                 "Trace every claim in that file using the available Excel, CSV, and PDF tools. "
                 "If a guessed filename does not exist, discard it and continue with the listed files only. "
+                "The output objects must use the exact schema keys 'flag' and 'explanation'; never use 'validation' or 'note'. "
                 f"When finished, call write_evidence exactly once with batch_name='{batch_name}' and the combined JSON array for this batch only. "
+                f"Do not write any intermediate or scratch JSON files. The only allowed batch_name for this task is '{batch_name}'. "
                 "Return a short summary after saving the evidence."
             ),
         }],
@@ -379,7 +394,7 @@ def _run_deepagents_demo_audit(progress_callback=None, pdf_filename: str = "atla
     if tracer_errors:
         raise RuntimeError(f"Deepagents tracer batch failed: {tracer_errors[0]}") from tracer_errors[0]
 
-    findings = _read_json_batches(EVIDENCE_DIR)
+    findings = _read_json_batches(EVIDENCE_DIR, pattern="evidence_*.json")
     if not findings:
         raise RuntimeError("Deepagents tracer produced no evidence")
     findings = _detect_cross_batch_ambiguity(findings)
