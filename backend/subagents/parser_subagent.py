@@ -1,17 +1,27 @@
-"""Parser subagent — creates and manages the PDF parsing agent."""
-
 import os
+
 from deepagents import create_deep_agent
+from dotenv import load_dotenv
 from langchain_deepseek import ChatDeepSeek
+
 from tools.pdf_tools import extract_page_text, get_pdf_page_count, write_claims
 
-# Use DeepSeek model — set DEEPSEEK_API_KEY in .env
+load_dotenv()
+
 MODEL = os.environ.get("PARSER_MODEL", "deepseek-chat")
+DEEPSEEK_API_BASE = os.environ.get("DEEPSEEK_API_BASE") or None
 
 
 def create_parser_subagent():
     """Create the Parser subagent configured with DeepSeek."""
-    model = ChatDeepSeek(model=MODEL, disabled_params={"thinking": None})
+    model = ChatDeepSeek(
+        model=MODEL,
+        temperature=0,
+        base_url=DEEPSEEK_API_BASE,
+        timeout=60.0,
+        max_retries=2,
+        disabled_params={"thinking": None},
+    )
     return create_deep_agent(
         model=model,
         tools=[extract_page_text, get_pdf_page_count, write_claims],
@@ -50,7 +60,3 @@ Save ALL claims using the write_claims tool when done with your assigned pages.
 """,
         name="parser_subagent",
     )
-
-
-# Singleton instance for module-level import
-parser_subagent = create_parser_subagent()

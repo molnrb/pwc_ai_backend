@@ -1,0 +1,267 @@
+# Canonical data point definitions for ESRS E1 — Climate Change audit domain.
+# Every data point has aliases (EN + HU), unit synonyms, source-type hints,
+# validation thresholds, and example claim sentences.
+
+data_points:
+  - id: scope1_emission
+    display_name: Scope 1 emissions
+    aliases:
+      - scope 1 emission
+      - scope 1 emissions
+      - scope 1 ghg
+      - direct emissions
+      - scope1 emission
+      - scope1
+      - scope 1 kibocsatas
+      - kozvetlen kibocsatas
+      - 1. scope kibocsatas
+    units: ["tCO2e", "tonnes CO2eq", "tonnes CO2 equivalent", "tonna CO2"]
+    allowed_source_kinds: ["pdf", "excel", "csv"]
+    period_rules:
+      prefer_current_reporting_year: true
+      disambiguate_from_prior_year: true
+    aggregation_rule: direct
+    validation_thresholds:
+      green_threshold: 0.005
+      yellow_threshold: 0.05
+      allow_missing_source: false
+      source_value_zero_handling: red
+    examples:
+      - "The company's Scope 1 emissions for 2024 were 1,850 tonnes CO2 equivalent."
+
+  - id: scope2_emission
+    display_name: Scope 2 emissions
+    aliases:
+      - scope 2 emission
+      - scope 2 emissions
+      - scope 2 ghg
+      - indirect energy emissions
+      - scope2 emission
+      - scope2
+      - scope 2 kibocsatas
+      - indirekt energia kibocsatas
+      - 2. scope kibocsatas
+    units: ["tCO2e", "tonnes CO2eq", "tonnes CO2 equivalent", "tonna CO2", "MWh"]
+    allowed_source_kinds: ["pdf", "excel", "csv"]
+    period_rules:
+      prefer_current_reporting_year: true
+      disambiguate_from_prior_year: true
+    aggregation_rule: direct
+    validation_thresholds:
+      green_threshold: 0.005
+      yellow_threshold: 0.05
+      allow_missing_source: false
+      source_value_zero_handling: red
+    examples:
+      - "The company's Scope 2 emissions for 2024 were 4,200 tonnes CO2 equivalent."
+
+  - id: scope1_scope2_total
+    display_name: Scope 1+2 total emissions
+    aliases:
+      - total scope 1 and 2
+      - total scope 1 & 2
+      - combined scope 1 and 2
+      - scope 1+2
+      - scope1+scope2
+      - sum of scope 1 and 2
+      - total direct and indirect emissions
+      - osszes scope 1 es 2
+      - scope 1 es 2 osszesen
+    units: ["tCO2e", "tonnes CO2eq", "tonnes CO2 equivalent", "tonna CO2"]
+    allowed_source_kinds: ["pdf", "excel", "csv"]
+    period_rules:
+      prefer_current_reporting_year: true
+      is_computed: true
+    aggregation_rule: sum
+    validation_thresholds:
+      green_threshold: 0.005
+      yellow_threshold: 0.05
+      allow_missing_source: false
+      source_value_zero_handling: red
+    examples:
+      - "The total Scope 1 and Scope 2 emissions amount to 6,050 tonnes CO2 equivalent."
+
+  - id: scope3_emission
+    display_name: Scope 3 emissions
+    aliases:
+      - scope 3 emission
+      - scope 3 emissions
+      - scope 3 ghg
+      - value chain emissions
+      - scope3 emission
+      - scope3
+      - scope 3 kibocsatas
+      - erteklanci kibocsatas
+      - beszallitoi kibocsatas
+    units: ["tCO2e", "tonnes CO2eq", "tonnes CO2 equivalent", "tonna CO2"]
+    allowed_source_kinds: ["pdf", "excel", "csv"]
+    period_rules:
+      prefer_current_reporting_year: true
+      disambiguate_from_prior_year: true
+    aggregation_rule: direct
+    validation_thresholds:
+      green_threshold: 0.005
+      yellow_threshold: 0.05
+      allow_missing_source: false
+      source_value_zero_handling: red
+    examples:
+      - "The estimated Scope 3 emissions were 18,400 tonnes CO2 equivalent."
+
+  - id: renewable_pct
+    display_name: Renewable energy share
+    aliases:
+      - renewable energy share
+      - renewable share
+      - share of renewable energy
+      - renewable energy percentage
+      - renewable percentage
+      - renewables share
+      - green energy share
+      - megujulo arany
+      - megujulo energia aranya
+      - megujulo energia reszaranya
+      - zold energia arany
+    units: ["%", "percent", "pct", "szazalek"]
+    allowed_source_kinds: ["pdf", "excel", "csv"]
+    period_rules:
+      prefer_current_reporting_year: true
+      is_percentage: true
+    aggregation_rule: direct
+    validation_thresholds:
+      green_threshold: 0.01
+      yellow_threshold: 0.05
+      allow_missing_source: false
+      source_value_zero_handling: grey
+    examples:
+      - "The share of renewable energy in total energy consumption was 67%."
+      - "A megujulo energia aranya a teljes energiafogyasztason belul 67% volt."
+
+  - id: headcount
+    display_name: Total headcount
+    aliases:
+      - headcount
+      - total headcount
+      - number of employees
+      - employee count
+      - total employees
+      - staff count
+      - workforce
+      - letszam
+      - osszletszam
+      - alkalmazottak szama
+      - munkavallaloi letszam
+      - foglalkoztatottak szama
+      - dolgozok szama
+    units: ["fő", "employees", "people", "staff", "FTE"]
+    allowed_source_kinds: ["pdf", "excel", "csv"]
+    period_rules:
+      prefer_current_reporting_year: true
+      period_type: point_in_time
+      typical_as_of: "2024-12-31"
+    aggregation_rule: count
+    validation_thresholds:
+      green_threshold: 0.01
+      yellow_threshold: 0.05
+      allow_missing_source: false
+      source_value_zero_handling: red
+    examples:
+      - "The total headcount as of December 31, 2024 was 2,340 employees."
+      - "Az osszletszam 2024. december 31-en 2,340 fo volt."
+
+  - id: training_participants
+    display_name: Training participants
+    aliases:
+      - training participants
+      - number of participants in training
+      - training program participants
+      - employees trained
+      - staff trained
+      - kepzesben resztvevok
+      - kepzesi program resztvevoi
+      - oktatasban resztvevok
+    units: ["fő", "employees", "people", "participants"]
+    allowed_source_kinds: ["pdf", "excel", "csv"]
+    period_rules:
+      prefer_current_reporting_year: true
+      period_type: cumulative
+    aggregation_rule: count
+    validation_thresholds:
+      green_threshold: 0.05
+      yellow_threshold: 0.10
+      allow_missing_source: true
+      source_value_zero_handling: grey
+    examples:
+      - "The number of participants in training programs was 1,240 employees."
+
+  - id: production_sites
+    display_name: Number of production sites
+    aliases:
+      - production sites
+      - number of production sites
+      - manufacturing sites
+      - operating sites
+      - facilities
+      - termelo uzemek
+      - termelesi helyszinek
+      - gyartasi telephelyek
+      - uzemek szama
+      - telephelyek szama
+    units: ["db", "sites", "locations", "facilities", "telephely"]
+    allowed_source_kinds: ["pdf", "excel", "csv"]
+    period_rules:
+      prefer_current_reporting_year: true
+      period_type: point_in_time
+    aggregation_rule: count
+    validation_thresholds:
+      green_threshold: 0.0
+      yellow_threshold: 0.0
+      allow_missing_source: true
+      source_value_zero_handling: grey
+    examples:
+      - "The company conducts production activities at 3 sites."
+      - "A vallalat 3 telephelyen vegez termelesi tevekenyseget."
+
+# ── Unit synonym registry ───────────────────────────────────────────────
+
+unit_registry:
+  tCO2e:
+    canonical: tCO2e
+    aliases:
+      - tonnes CO2eq
+      - tonnes CO2 equivalent
+      - t CO2e
+      - tonna CO2
+      - tonna CO2 egyenertek
+  pct:
+    canonical: "%"
+    aliases:
+      - percent
+      - pct
+      - szazalek
+      - percentage
+  headcount:
+    canonical: "fő"
+    aliases:
+      - employees
+      - people
+      - staff
+      - FTE
+      - full-time equivalent
+      - alkalmazott
+      - munkavallalo
+      - dolgozo
+  count:
+    canonical: "db"
+    aliases:
+      - sites
+      - locations
+      - facilities
+      - telephely
+      - participants
+      - resztvevo
+  MWh:
+    canonical: MWh
+    aliases:
+      - megawatt-hour
+      - megawatt hours
+      - megawattora

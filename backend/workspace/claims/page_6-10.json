@@ -1,17 +1,8 @@
 [
   {
-    "data_point": "production_sites",
-    "claimed_value": 3,
-    "unit": "sites",
-    "page": 4,
-    "paragraph_idx": 2,
-    "source_hint": "unknown",
-    "claim_text": "The company conducts production activities at 3 sites."
-  },
-  {
     "data_point": "scope1_emission",
     "claimed_value": 1850,
-    "unit": "tonnes CO2 equivalent",
+    "unit": "tonnes CO2e",
     "page": 6,
     "paragraph_idx": 3,
     "source_hint": "energia_2024.xlsx",
@@ -20,7 +11,7 @@
   {
     "data_point": "scope2_emission",
     "claimed_value": 4200,
-    "unit": "tonnes CO2 equivalent",
+    "unit": "tonnes CO2e",
     "page": 7,
     "paragraph_idx": 3,
     "source_hint": "energia_2024.xlsx",
@@ -29,7 +20,7 @@
   {
     "data_point": "scope1_scope2_total",
     "claimed_value": 6050,
-    "unit": "tonnes CO2 equivalent",
+    "unit": "tonnes CO2e",
     "page": 7,
     "paragraph_idx": 7,
     "source_hint": "energia_2024.xlsx",
@@ -38,7 +29,7 @@
   {
     "data_point": "scope3_emission",
     "claimed_value": 18400,
-    "unit": "tonnes CO2 equivalent",
+    "unit": "tonnes CO2e",
     "page": 8,
     "paragraph_idx": 3,
     "source_hint": "scope3_szallito.xlsx",
@@ -61,14 +52,5 @@
     "paragraph_idx": 2,
     "source_hint": "hr_export_2024.csv",
     "claim_text": "The total headcount as of December 31, 2024 was 2,340 employees."
-  },
-  {
-    "data_point": "training_participants",
-    "claimed_value": 1240,
-    "unit": "employees",
-    "page": 11,
-    "paragraph_idx": 2,
-    "source_hint": "unknown",
-    "claim_text": "The number of participants in training programs was 1,240 employees."
   }
 ]

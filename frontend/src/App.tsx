@@ -9,27 +9,44 @@ import { AgentFeed } from './components/audit/AgentFeed';
 import { Dashboard } from './components/dashboard/Dashboard';
 import { NewAudit } from './components/new-audit/NewAudit';
 import { useAtlasData } from './hooks/useAtlasData';
-import { uploadInputFiles } from './services/api';
+import { resetWorkspace, uploadInputFiles } from './services/api';
 
 export default function App() {
   const [view, setView] = useState<'Audit Logs' | 'Dashboard' | 'New Audit'>('Audit Logs');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { evidence, summary, health, feed, loading, startStream, addFeedEntry } = useAtlasData();
+  const { evidence, summary, health, feed, loading, startStream, addFeedEntry, clearRunState } = useAtlasData();
 
-  const launchAuditStream = () => {
+  const prepareFreshAudit = async () => {
     setView('Audit Logs');
+    clearRunState();
+    addFeedEntry('SYSTEM', 'Preparing fresh audit run...');
+
+    try {
+      await resetWorkspace();
+      addFeedEntry('SYSTEM', 'Previous audit outputs cleared.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown reset error';
+      addFeedEntry('ERROR', `Workspace reset failed: ${message}`);
+    }
+  };
+
+  const launchAuditStream = async () => {
+    await prepareFreshAudit();
     addFeedEntry('SYSTEM', 'Starting live audit stream...');
     startStream();
   };
 
   const handleAuditComplete = async (files: File[] = []) => {
+    await prepareFreshAudit();
+
     if (files.length > 0) {
       addFeedEntry('SYSTEM', `Uploading ${files.length} file(s) to backend workspace...`);
       const upload = await uploadInputFiles(files);
       addFeedEntry('SYSTEM', `Upload complete. ${upload.input_file_count} file(s) ready.`);
     }
 
-    launchAuditStream();
+    addFeedEntry('SYSTEM', 'Starting live audit stream...');
+    startStream();
   };
 
   return (
@@ -47,7 +64,7 @@ export default function App() {
           evidenceCount={evidence.length}
           redCount={summary?.red_count ?? 0}
           loading={loading}
-          onLaunchAudit={launchAuditStream}
+          onLaunchAudit={() => { void launchAuditStream(); }}
           setIsSidebarOpen={setIsSidebarOpen}
         />
 
@@ -55,7 +72,7 @@ export default function App() {
           {view === 'Dashboard' && <Dashboard evidence={evidence} summary={summary} health={health} feed={feed} />}
 
           {view === 'New Audit' && (
-            <NewAudit onComplete={handleAuditComplete} />
+            <NewAudit onComplete={(files) => { void handleAuditComplete(files); }} />
           )}
 
           {view === 'Audit Logs' && (

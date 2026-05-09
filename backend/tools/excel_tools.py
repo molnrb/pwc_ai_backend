@@ -6,6 +6,22 @@ from langchain_core.tools import tool
 WORKSPACE_DIR = os.environ.get("WORKSPACE_DIR", "workspace")
 
 
+def _coerce_excel_value(value):
+    if pd.isna(value):
+        return None
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+
+    normalized = str(value).strip().replace(",", "")
+    if normalized.endswith("%"):
+        normalized = normalized[:-1].strip()
+
+    try:
+        return float(normalized)
+    except ValueError:
+        return str(value)
+
+
 def _input_path(filename: str) -> str:
     return os.path.join(WORKSPACE_DIR, "input", filename)
 
@@ -47,7 +63,7 @@ def read_excel_cell(filename: str, sheet: str, row_label: str, col_label: str) -
     cell_ref = f"{col_letter}{row_num}"
     
     return json.dumps({
-        "value": float(value) if pd.notna(value) else None,
+        "value": _coerce_excel_value(value),
         "cell": cell_ref,
         "sheet": sheet,
         "filename": filename

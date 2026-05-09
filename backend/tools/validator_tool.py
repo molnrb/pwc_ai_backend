@@ -4,8 +4,19 @@ import json
 from langchain_core.tools import tool
 
 
+def _coerce_numeric(value: float | int | str) -> float:
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+
+    normalized = str(value).strip().replace(",", "")
+    if normalized.endswith("%"):
+        normalized = normalized[:-1].strip()
+
+    return float(normalized)
+
+
 @tool
-def validate_claim(claimed_value: float, source_value: float, unit: str = "") -> str:
+def validate_claim(claimed_value: float | int | str, source_value: float | int | str, unit: str = "") -> str:
     """Compares a claimed value from the PDF against the source document value.
 
     Args:
@@ -16,6 +27,9 @@ def validate_claim(claimed_value: float, source_value: float, unit: str = "") ->
     Returns:
         JSON with flag (green/yellow/red), deviation percentage, claimed and source values
     """
+    claimed_value = _coerce_numeric(claimed_value)
+    source_value = _coerce_numeric(source_value)
+
     if source_value == 0:
         return json.dumps({
             "flag": "red",
