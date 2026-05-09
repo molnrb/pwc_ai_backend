@@ -14,10 +14,11 @@ export const StepConfigure = () => {
         <div className="space-y-2">
           <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Reporting Year</label>
           <div className="relative">
-            <select defaultValue="2024" className="w-full appearance-none bg-[#1A1A2E] border border-[#3D3D4E] p-4 rounded-sm text-sm text-white focus:outline-none focus:border-[#E8521A] transition-colors cursor-pointer pr-10">
+            <select defaultValue="2026" className="w-full appearance-none bg-[#1A1A2E] border border-[#3D3D4E] p-4 rounded-sm text-sm text-white focus:outline-none focus:border-[#E8521A] transition-colors cursor-pointer pr-10">
+              <option>2026</option>
+              <option>2025</option>
               <option>2024</option>
               <option>2023</option>
-              <option>2022</option>
             </select>
             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
           </div>

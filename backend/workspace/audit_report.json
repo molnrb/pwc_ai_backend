@@ -5,8 +5,8 @@
     "framework": "EU CSRD",
     "pipeline": "mock",
     "parser_mode": "scripted-manifest",
-    "started_at": "2026-05-09T06:01:52.539337+00:00",
-    "completed_at": "2026-05-09T06:01:52.539337+00:00",
+    "started_at": "2026-05-09T07:30:09.696507+00:00",
+    "completed_at": "2026-05-09T07:30:09.696507+00:00",
     "total_pages": 34,
     "total_claims_found": 5,
     "total_findings": 5,
@@ -16,15 +16,9 @@
   },
   "document_inventory": [
     {
-      "filename": "GHG_calculation_workbook.xlsx",
-      "type": ".xlsx",
-      "size_kb": 14.5,
-      "role": "calculation_workbook"
-    },
-    {
       "filename": "audit_index.json",
       "type": ".json",
-      "size_kb": 2.6,
+      "size_kb": 2.7,
       "role": "input_document"
     },
     {
@@ -36,8 +30,14 @@
     {
       "filename": "electricity_invoice_Berlin_Jul2025.pdf",
       "type": ".pdf",
-      "size_kb": 3.1,
+      "size_kb": 3.2,
       "role": "source_document"
+    },
+    {
+      "filename": "GHG_calculation_workbook.xlsx",
+      "type": ".xlsx",
+      "size_kb": 14.5,
+      "role": "calculation_workbook"
     },
     {
       "filename": "siemens_E1_excerpt.pdf",

@@ -87,28 +87,6 @@ export const Dashboard = ({ evidence, summary, health, feed }: Props) => {
             </div>
           )}
 
-          {/* Quick Stats */}
-          <div className="bg-[#2C2C3E] border border-[#3D3D4E] p-6 rounded-sm space-y-4">
-            <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">COVERAGE</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <p className="text-2xl font-bold text-white">{total}</p>
-                <p className="text-[10px] uppercase tracking-widest text-slate-500">Claims Analyzed</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-bold text-white">{tracedFindings.length}</p>
-                <p className="text-[10px] uppercase tracking-widest text-slate-500">Source Traces</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-bold text-white">{redFlags.length}</p>
-                <p className="text-[10px] uppercase tracking-widest text-slate-500">Red Flags</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-bold text-white">{filesChecked}</p>
-                <p className="text-[10px] uppercase tracking-widest text-slate-500">Files Checked</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Right: Red Flags Detail + Activity */}
@@ -144,26 +122,6 @@ export const Dashboard = ({ evidence, summary, health, feed }: Props) => {
             )}
           </div>
 
-          {/* Recent Activity */}
-          <div className="bg-[#2C2C3E] border border-[#3D3D4E] p-6 rounded-sm">
-            <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-6">RECENT ACTIVITY</h3>
-            <div className="space-y-4">
-              {feed.slice(0, 5).map((entry) => (
-                <div key={`${entry.timestamp}-${entry.agent}-${entry.message}`} className="flex gap-4 items-start p-3 bg-[#1A1A2E]/30 rounded-sm border border-[#3D3D4E]/50">
-                  <div className="mt-1.5 w-1 h-1 rounded-full bg-slate-600 shrink-0" />
-                  <div className="space-y-1">
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
-                      <span className="font-bold opacity-60">[{entry.agent}]</span> {entry.message}
-                    </p>
-                    <p className="text-[10px] font-mono text-slate-600 uppercase">{entry.timestamp}</p>
-                  </div>
-                </div>
-              ))}
-              {feed.length === 0 && (
-                <p className="text-xs text-slate-600 uppercase tracking-widest text-center py-8">No activity yet</p>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>
