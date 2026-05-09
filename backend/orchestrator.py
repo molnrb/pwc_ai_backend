@@ -44,6 +44,8 @@ INPUT_DIR = get_input_dir(WORKSPACE)
 _atlas_orchestrator = None
 VALID_PIPELINE_MODES = {"auto", "deepagents", "generic", "legacy"}
 TRACER_CONCURRENCY = max(1, int(os.environ.get("ATLAS_TRACER_CONCURRENCY", "2")))
+PARSER_TIMEOUT_SECONDS = float(os.environ.get("ATLAS_PARSER_TIMEOUT_SECONDS", "300"))
+PARSER_RETRY_TIMEOUT_SECONDS = float(os.environ.get("ATLAS_PARSER_RETRY_TIMEOUT_SECONDS", "420"))
 
 
 def _make_model():
@@ -169,14 +171,26 @@ def _claim_batch_files() -> list[Path]:
     )
 
 
-def _parser_batch_message(pdf_name: str, page_range: str) -> dict[str, Any]:
+def _claim_batch_path(page_range: str) -> Path:
+    return CLAIMS_DIR / f"page_{page_range}.json"
+
+
+def _evidence_batch_path(claim_batch_file: Path) -> Path:
+    return EVIDENCE_DIR / claim_batch_file.name.replace("page_", "evidence_")
+
+
+def _parser_batch_message(pdf_name: str, page_range: str, retry: bool = False) -> dict[str, Any]:
+    retry_prefix = "Previous attempt did not save the required claim batch file. " if retry else ""
     return {
         "messages": [{
             "role": "user",
             "content": (
+                f"{retry_prefix}"
                 f"Parse only pages {page_range} from {pdf_name}. "
                 f"Call extract_page_text for each page in this range, extract all supported numerical claims, "
                 f"then call write_claims exactly once with page_range=\"{page_range}\" and the JSON array of claims. "
+                f"The only allowed output file for this task is page_{page_range}.json. "
+                "Do not write any scratch, helper, or differently named claim files. "
                 "Return a one-line summary after saving the claims."
             ),
         }],
@@ -202,6 +216,40 @@ async def _parse_all_batches(parser_agent: Any, pdf_path: Path, page_ranges: lis
     return await asyncio.gather(*(run_one(page_range) for page_range in page_ranges), return_exceptions=True)
 
 
+async def _retry_missing_parser_batches(parser_agent: Any, pdf_path: Path, page_ranges: list[str], progress_callback=None) -> list[Any]:
+    from pipeline import _emit
+
+    results: list[Any] = []
+    for page_range in page_ranges:
+        _emit(progress_callback, "agent_progress", {
+            "agent": "Orchestrator",
+            "message": f"Retrying parser batch {page_range}",
+        })
+        results.append(
+            await _invoke_agent_async(
+                parser_agent,
+                _parser_batch_message(pdf_path.name, page_range, retry=True),
+            )
+        )
+
+    return results
+
+
+def _emit_missing_batch_status(progress_callback, missing_page_ranges: list[str], claims_found: int) -> None:
+    from pipeline import _emit
+
+    joined_ranges = ", ".join(missing_page_ranges)
+    _emit(progress_callback, "status", {
+        "message": (
+            "Parser batches still missing after extended retry: "
+            f"{joined_ranges}. Continuing without those pages and using the {claims_found} extracted claims already available."
+        ),
+        "mode": "deepagents_partial_parse",
+        "missing_batches": missing_page_ranges,
+        "claims_found": claims_found,
+    })
+
+
 def _tracer_batch_message(claim_batch_file: Path, available_files: str) -> dict[str, Any]:
     batch_name = claim_batch_file.stem.replace("page_", "evidence_")
     return {
@@ -222,6 +270,40 @@ def _tracer_batch_message(claim_batch_file: Path, available_files: str) -> dict[
     }
 
 
+def _filter_tracer_batch_output(claim_batch_file: Path) -> tuple[int, int]:
+    evidence_path = _evidence_batch_path(claim_batch_file)
+    if not claim_batch_file.exists() or not evidence_path.exists():
+        return 0, 0
+
+    try:
+        claims = json.loads(claim_batch_file.read_text(encoding="utf-8"))
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return 0, 0
+
+    if not isinstance(claims, list) or not isinstance(evidence, list):
+        return 0, 0
+
+    allowed_claim_ids = {
+        claim.get("claim_id")
+        for claim in claims
+        if isinstance(claim, dict) and claim.get("claim_id")
+    }
+    if not allowed_claim_ids:
+        return 0, 0
+
+    filtered = [
+        item for item in evidence
+        if not isinstance(item, dict)
+        or not item.get("claim_id")
+        or item.get("claim_id") in allowed_claim_ids
+    ]
+    dropped = len(evidence) - len(filtered)
+    if dropped:
+        evidence_path.write_text(json.dumps(filtered, indent=2, ensure_ascii=False), encoding="utf-8")
+    return dropped, len(filtered)
+
+
 async def _trace_all(tracer_agent: Any, claim_batch_files: list[Path], sem: asyncio.Semaphore, progress_callback=None) -> list[Any]:
     from pipeline import _emit
 
@@ -233,10 +315,19 @@ async def _trace_all(tracer_agent: Any, claim_batch_files: list[Path], sem: asyn
                 "agent": "Tracer",
                 "message": f"Tracing claim batch {claim_batch_file.name}",
             })
-            return await _invoke_agent_async(
+            result = await _invoke_agent_async(
                 tracer_agent,
                 _tracer_batch_message(claim_batch_file, available_files),
             )
+            dropped, kept = _filter_tracer_batch_output(claim_batch_file)
+            if dropped:
+                _emit(progress_callback, "agent_progress", {
+                    "agent": "Tracer",
+                    "message": (
+                        f"Filtered {dropped} extra finding(s) from {claim_batch_file.name}; kept {kept} matched evidence rows"
+                    ),
+                })
+            return result
 
     return await asyncio.gather(*(run_one(claim_batch_file) for claim_batch_file in claim_batch_files), return_exceptions=True)
 
@@ -336,7 +427,7 @@ def _run_deepagents_demo_audit(progress_callback=None, pdf_filename: str = "atla
         "total": len(page_ranges) + 1,
     })
 
-    parser_agent = create_parser_subagent()
+    parser_agent = create_parser_subagent(timeout_seconds=PARSER_TIMEOUT_SECONDS)
     _emit(progress_callback, "phase", {
         "phase": "parse_claims",
         "message": "Parser subagents extracting claims in page batches...",
@@ -351,9 +442,33 @@ def _run_deepagents_demo_audit(progress_callback=None, pdf_filename: str = "atla
     if parser_errors:
         raise RuntimeError(f"Deepagents parser batch failed: {parser_errors[0]}") from parser_errors[0]
 
+    missing_page_ranges = [page_range for page_range in page_ranges if not _claim_batch_path(page_range).is_file()]
+    if missing_page_ranges:
+        from pipeline import _emit
+
+        _emit(progress_callback, "status", {
+            "message": (
+                "Parser batches missing after initial pass: "
+                f"{', '.join(missing_page_ranges)}. Retrying with an extended timeout before continuing."
+            ),
+            "mode": "deepagents_parser_retry",
+            "missing_batches": missing_page_ranges,
+        })
+        retry_parser_agent = create_parser_subagent(timeout_seconds=PARSER_RETRY_TIMEOUT_SECONDS)
+        retry_results = asyncio.run(
+            _retry_missing_parser_batches(retry_parser_agent, pdf_path, missing_page_ranges, progress_callback)
+        )
+        retry_errors = [result for result in retry_results if isinstance(result, Exception)]
+        if retry_errors:
+            raise RuntimeError(f"Deepagents parser retry failed: {retry_errors[0]}") from retry_errors[0]
+
+    missing_page_ranges = [page_range for page_range in page_ranges if not _claim_batch_path(page_range).is_file()]
     claims = _read_json_batches(CLAIMS_DIR)
     if not claims:
         raise RuntimeError("Deepagents parser produced no claims")
+
+    if missing_page_ranges:
+        _emit_missing_batch_status(progress_callback, missing_page_ranges, len(claims))
 
     for index, claim in enumerate(claims, start=1):
         _emit(progress_callback, "agent_progress", {

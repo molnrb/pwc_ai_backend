@@ -3,6 +3,7 @@ import { FileSearch, X, ShieldAlert, ArrowRight, FileJson } from 'lucide-react';
 import { SummaryCard } from './SummaryCard';
 import { ESRS_COLORS } from '../../constants/esrs';
 import { downloadReportPackage, type Evidence, type HealthStatus, type Summary } from '../../services/api';
+import { getEvidenceKey } from '../../utils/evidenceKey';
 
 interface FeedEntry { agent: string; timestamp: string; message: string; }
 
@@ -120,8 +121,8 @@ export const Dashboard = ({ evidence, summary, health, feed }: Props) => {
             </div>
             {redFlags.length > 0 ? (
               <div className="space-y-4">
-                {redFlags.map((flag) => (
-                  <div key={`${flag.data_point}-${flag.page}-${flag.source_cell ?? 'no-source'}`} className="p-4 bg-[#1A1A2E] border border-[#3D3D4E] border-l-[3px] border-l-[#EF4444] rounded-sm">
+                {redFlags.map((flag, index) => (
+                  <div key={getEvidenceKey(flag, index)} className="p-4 bg-[#1A1A2E] border border-[#3D3D4E] border-l-[3px] border-l-[#EF4444] rounded-sm">
                     <div className="flex items-start justify-between gap-4">
                       <div className="space-y-2">
                         <p className="text-sm font-bold text-white">{flag.data_point}</p>

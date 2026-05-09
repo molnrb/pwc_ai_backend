@@ -66,6 +66,9 @@ claim_kind enum:
 - Do not use audit_index.json or expected_findings as source truth
 - Do not round, convert, or normalize PDF values
 - Do not emit duplicate claim_id values within the same batch
+- Use write_claims exactly once with the page_range provided in the user task.
+- The only allowed output file is page_{page_range}.json for that assigned range.
+- Never write scratch, helper, summary, or differently named claim JSON files.
 
 When the assigned page range is complete, call write_claims exactly once
 with the full JSON array. If the range contains no auditable claims, call
