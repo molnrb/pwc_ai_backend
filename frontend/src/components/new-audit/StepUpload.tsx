@@ -70,7 +70,7 @@ export const StepUpload = ({ files, setFiles }: Props) => {
     <div className="space-y-8">
       <h2 className="text-xl font-bold text-white uppercase tracking-tight">Step 1 of 3: Upload Documents</h2>
 
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-[800px] mx-auto">
         {/* Statement PDF Upload */}
         <input
           ref={statementInputRef}
@@ -84,7 +84,7 @@ export const StepUpload = ({ files, setFiles }: Props) => {
         />
         <button
           type="button"
-          className={`border-2 border-dashed transition-colors p-12 flex flex-col items-center justify-center gap-4 cursor-pointer rounded-sm ${dragOverStatement ? 'border-[#E8521A] bg-[#E8521A]/5' : 'border-[#3D3D4E] hover:border-[#E8521A] bg-[#2C2C3E]/30'
+          className={`w-full border-2 border-dashed transition-colors py-12 flex flex-col items-center justify-center gap-4 cursor-pointer rounded-sm ${dragOverStatement ? 'border-[#E8521A] bg-[#E8521A]/5' : 'border-[#3D3D4E] hover:border-[#E8521A] bg-[#2C2C3E]/30'
             }`}
           onClick={openStatementPicker}
           onKeyDown={(event) => handleDropZoneKeyDown(event, openStatementPicker)}
@@ -122,7 +122,7 @@ export const StepUpload = ({ files, setFiles }: Props) => {
         />
         <button
           type="button"
-          className={`border-2 border-dashed transition-colors p-8 flex flex-col items-center justify-center gap-2 cursor-pointer rounded-sm ${dragOverSupport ? 'border-[#E8521A] bg-[#E8521A]/5' : 'border-[#3D3D4E] hover:border-[#E8521A] bg-[#1A1A2E]/50'
+          className={`w-full border-2 border-dashed transition-colors py-12 flex flex-col items-center justify-center gap-2 cursor-pointer rounded-sm ${dragOverSupport ? 'border-[#E8521A] bg-[#E8521A]/5' : 'border-[#3D3D4E] hover:border-[#E8521A] bg-[#1A1A2E]/50'
             }`}
           onClick={openSupportPicker}
           onKeyDown={(event) => handleDropZoneKeyDown(event, openSupportPicker)}
