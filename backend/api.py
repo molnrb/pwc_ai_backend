@@ -243,7 +243,9 @@ def _compute_summary(findings: list) -> dict:
         "material_red_count": red,
         "red_flags": red_flags,
         "review_required": review_required,
-        "verdict": "PASS" if not has_red else f"FAIL — {red} material misstatement(s) detected",
+        "verdict": (
+            "PASS" if not has_red else f"FAIL — {red} material misstatement(s) detected"
+        ),
         "materiality_note": (
             f"{red} material error(s) found. Auditor must investigate flagged items before signing off."
             if has_red
@@ -278,18 +280,26 @@ def _run_live_audit(progress_callback=None) -> tuple[str, dict]:
     if is_llm_available():
         logger.info("Live audit requested: selecting LLM-assisted pipeline")
         if progress_callback is not None:
-            progress_callback("status", {
-                "message": "Atlas CSRD Audit Engine initializing live LLM pipeline...",
-                "mode": "live_llm",
-            })
+            progress_callback(
+                "status",
+                {
+                    "message": "Atlas CSRD Audit Engine initializing live LLM pipeline...",
+                    "mode": "live_llm",
+                },
+            )
         return "live_llm", run_live_llm_audit(progress_callback=progress_callback)
 
-    logger.warning("Live audit requested without LLM availability: falling back to deterministic pipeline")
+    logger.warning(
+        "Live audit requested without LLM availability: falling back to deterministic pipeline"
+    )
     if progress_callback is not None:
-        progress_callback("status", {
-            "message": "DeepSeek is unavailable. Running deterministic live pipeline.",
-            "mode": "live_deterministic",
-        })
+        progress_callback(
+            "status",
+            {
+                "message": "DeepSeek is unavailable. Running deterministic live pipeline.",
+                "mode": "live_deterministic",
+            },
+        )
     return "live_deterministic", run_full_audit(progress_callback=progress_callback)
 
 
@@ -304,17 +314,23 @@ def _clear_input_dir() -> None:
     INPUT_DIR.mkdir(parents=True, exist_ok=True)
     for existing in INPUT_DIR.iterdir():
         if existing.is_file():
-            existing.unlink()
+            try:
+                existing.unlink()
+            except PermissionError:
+                logger.warning(
+                    f"Could not delete {existing.name} (in use by another process), skipping."
+                )
 
 
 async def _save_upload(upload: UploadFile) -> dict:
     filename = _sanitize_filename(upload.filename or "")
     destination = INPUT_DIR / filename
 
-    with destination.open("wb") as target:
-        shutil.copyfileobj(upload.file, target)
-
-    await upload.close()
+    try:
+        with destination.open("wb") as target:
+            shutil.copyfileobj(upload.file, target)
+    finally:
+        await upload.close()
     return {
         "filename": filename,
         "size_kb": round(destination.stat().st_size / 1024, 1),
@@ -329,7 +345,9 @@ async def serve_ui():
     ui_path = Path(__file__).parent / "ui.html"
     if ui_path.exists():
         return HTMLResponse(ui_path.read_text(encoding="utf-8"))
-    return HTMLResponse("<h1>Atlas — CSRD Audit Intelligence</h1><p>API is running. UI not found at ui.html</p>")
+    return HTMLResponse(
+        "<h1>Atlas — CSRD Audit Intelligence</h1><p>API is running. UI not found at ui.html</p>"
+    )
 
 
 @app.get("/health")
@@ -412,7 +430,9 @@ async def upload_inputs(files: list[UploadFile] = File(...)):
             "status": "uploaded",
             "files": saved_files,
             "input_file_count": len(saved_files),
-            "ready": any(item["filename"].lower().endswith(".pdf") for item in saved_files),
+            "ready": any(
+                item["filename"].lower().endswith(".pdf") for item in saved_files
+            ),
         }
     )
 
@@ -427,11 +447,15 @@ async def get_report():
             return JSONResponse(report)
         except (json.JSONDecodeError, IOError):
             return JSONResponse(
-                {"error": "Report file is corrupted. Run POST /reset and POST /audit to regenerate."},
+                {
+                    "error": "Report file is corrupted. Run POST /reset and POST /audit to regenerate."
+                },
                 status_code=500,
             )
     return JSONResponse(
-        {"error": "No audit report generated yet. Run POST /audit first to create an evidence package."},
+        {
+            "error": "No audit report generated yet. Run POST /audit first to create an evidence package."
+        },
         status_code=404,
     )
 
@@ -458,7 +482,9 @@ async def run_audit():
         return JSONResponse(
             {
                 "mode": mode,
-                "evidence": sorted(report.get("findings", []), key=lambda x: x.get("page", 0)),
+                "evidence": sorted(
+                    report.get("findings", []), key=lambda x: x.get("page", 0)
+                ),
                 "summary": report.get("summary", {}),
                 "review_required": report.get("review_required", False),
                 "red_flags": report.get("red_flags", []),
@@ -510,11 +536,15 @@ async def stream_audit(request: Request):
 
 async def _mock_stream(request: Request) -> AsyncGenerator[str, None]:
     """Cinematic SSE stream for live demos — uses the fixed event taxonomy."""
-    yield _sse_event("status", {"message": "Atlas CSRD Audit Engine initializing...", "mode": "mock"})
+    yield _sse_event(
+        "status", {"message": "Atlas CSRD Audit Engine initializing...", "mode": "mock"}
+    )
     await asyncio.sleep(0.3)
 
     # Phase: catalog_inputs
-    yield _sse_event("phase", {"phase": "catalog_inputs", "message": "Cataloging input documents..."})
+    yield _sse_event(
+        "phase", {"phase": "catalog_inputs", "message": "Cataloging input documents..."}
+    )
     await asyncio.sleep(0.3)
     input_files = [
         {"name": "atlas_sustainability_statement.pdf", "size_kb": 35.7, "type": ".pdf"},
@@ -536,7 +566,10 @@ async def _mock_stream(request: Request) -> AsyncGenerator[str, None]:
     # Phase: build_audit_plan
     yield _sse_event(
         "phase",
-        {"phase": "build_audit_plan", "message": "Building audit plan for ESRS E1 — Climate Change"},
+        {
+            "phase": "build_audit_plan",
+            "message": "Building audit plan for ESRS E1 — Climate Change",
+        },
     )
     todos = [
         "Analyze PDF structure (ESRS E1 claims)",
@@ -566,11 +599,17 @@ async def _mock_stream(request: Request) -> AsyncGenerator[str, None]:
     # Phase: parse_claims (Parser agent)
     yield _sse_event(
         "phase",
-        {"phase": "parse_claims", "message": "Parser analyzing sustainability statement..."},
+        {
+            "phase": "parse_claims",
+            "message": "Parser analyzing sustainability statement...",
+        },
     )
     yield _sse_event(
         "agent_start",
-        {"agent": "Parser", "task": "Extracting ESRS E1 claims from atlas_sustainability_statement.pdf"},
+        {
+            "agent": "Parser",
+            "task": "Extracting ESRS E1 claims from atlas_sustainability_statement.pdf",
+        },
     )
     await asyncio.sleep(0.3)
     claim_progress = [
@@ -598,7 +637,8 @@ async def _mock_stream(request: Request) -> AsyncGenerator[str, None]:
         await asyncio.sleep(0.15)
     yield _sse_event("agent_done", {"agent": "Parser", "claims_found": 8})
     yield _sse_event(
-        "phase", {"phase": "parse_claims", "message": "Parsing complete — 8 claims extracted"}
+        "phase",
+        {"phase": "parse_claims", "message": "Parsing complete — 8 claims extracted"},
     )
     await asyncio.sleep(0.3)
 
@@ -660,11 +700,17 @@ async def _mock_stream(request: Request) -> AsyncGenerator[str, None]:
     # Phase: validate_findings (Validator agent)
     yield _sse_event(
         "phase",
-        {"phase": "validate_findings", "message": "Validator running deterministic checks..."},
+        {
+            "phase": "validate_findings",
+            "message": "Validator running deterministic checks...",
+        },
     )
     yield _sse_event(
         "agent_start",
-        {"agent": "Validator", "task": "Running deterministic validation on all findings"},
+        {
+            "agent": "Validator",
+            "task": "Running deterministic validation on all findings",
+        },
     )
     await asyncio.sleep(0.2)
     yield _sse_event(
@@ -674,7 +720,10 @@ async def _mock_stream(request: Request) -> AsyncGenerator[str, None]:
     await asyncio.sleep(0.2)
     yield _sse_event(
         "agent_done",
-        {"agent": "Validator", "message": "Validation complete — 3 green, 1 yellow, 2 red, 2 grey"},
+        {
+            "agent": "Validator",
+            "message": "Validation complete — 3 green, 1 yellow, 2 red, 2 grey",
+        },
     )
     yield _sse_event(
         "phase",
@@ -701,7 +750,10 @@ async def _mock_stream(request: Request) -> AsyncGenerator[str, None]:
     )
     yield _sse_event(
         "phase",
-        {"phase": "build_report", "message": "Report complete — evidence package ready"},
+        {
+            "phase": "build_report",
+            "message": "Report complete — evidence package ready",
+        },
     )
     await asyncio.sleep(0.3)
 

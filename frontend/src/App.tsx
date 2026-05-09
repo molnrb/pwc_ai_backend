@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
-import { StatusBar } from './components/layout/StatusBar';
 import { RegulatoryExtracts } from './components/audit/RegulatoryExtracts';
-import { SourceTraceTable } from './components/audit/SourceTraceTable';
-import { ReviewBanner } from './components/audit/ReviewBanner';
 import { AgentFeed } from './components/audit/AgentFeed';
 import { Dashboard } from './components/dashboard/Dashboard';
 import { NewAudit } from './components/new-audit/NewAudit';
@@ -79,15 +76,11 @@ export default function App() {
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
               <RegulatoryExtracts evidence={evidence} />
               <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-                <SourceTraceTable evidence={evidence} summary={summary} />
-                <ReviewBanner evidence={evidence} />
-                <AgentFeed feed={feed} />
+                <AgentFeed feed={feed} fullHeight />
               </div>
             </div>
           )}
         </div>
-
-        <StatusBar evidence={evidence} summary={summary} loading={loading} />
       </main>
 
       <style>{`
