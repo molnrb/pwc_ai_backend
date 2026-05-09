@@ -1,0 +1,1 @@
+# Extraction layer — claim candidates from raw documents

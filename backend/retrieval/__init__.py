@@ -1,0 +1,1 @@
+# Evidence retrieval layer — find evidence in source documents

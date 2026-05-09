@@ -1,0 +1,61 @@
+invoice_id,site_id,site_name,provider_name,billing_period_start,billing_period_end,service_type,consumption_kWh,unit_price_per_kWh,amount,currency,invoice_date,payment_status
+INV-2025-DE-08848,DE-BER-01,Berlin Headquarters,Vattenfall Europe Sales GmbH,2024-10-01,2024-10-31,electricity,7791667,0.245,1908958.42,EUR,2024-10-31,paid
+INV-2025-DE-08849,DE-BER-01,Berlin Headquarters,Vattenfall Europe Sales GmbH,2024-11-01,2024-11-30,electricity,8145833,0.245,1995729.08,EUR,2024-11-30,paid
+INV-2025-DE-08850,DE-BER-01,Berlin Headquarters,Vattenfall Europe Sales GmbH,2024-12-01,2024-12-31,electricity,8500000,0.245,2082500.0,EUR,2024-12-31,paid
+INV-2025-DE-08851,DE-BER-01,Berlin Headquarters,Vattenfall Europe Sales GmbH,2025-01-01,2025-01-31,electricity,8145833,0.245,1995729.08,EUR,2025-01-31,paid
+INV-2025-DE-08852,DE-BER-01,Berlin Headquarters,Vattenfall Europe Sales GmbH,2025-02-01,2025-02-28,electricity,7437500,0.245,1822187.5,EUR,2025-02-28,paid
+INV-2025-DE-08853,DE-BER-01,Berlin Headquarters,Vattenfall Europe Sales GmbH,2025-03-01,2025-03-31,electricity,6729167,0.245,1648645.92,EUR,2025-03-31,paid
+INV-2025-DE-08854,DE-BER-01,Berlin Headquarters,Vattenfall Europe Sales GmbH,2025-04-01,2025-04-30,electricity,6020833,0.245,1475104.08,EUR,2025-04-30,paid
+INV-2025-DE-08855,DE-BER-01,Berlin Headquarters,Vattenfall Europe Sales GmbH,2025-05-01,2025-05-31,electricity,6020833,0.245,1475104.08,EUR,2025-05-31,paid
+INV-2025-DE-08856,DE-BER-01,Berlin Headquarters,Vattenfall Europe Sales GmbH,2025-06-01,2025-06-30,electricity,6375000,0.245,1561875.0,EUR,2025-06-30,paid
+INV-2025-DE-08857,DE-BER-01,Berlin Headquarters,Vattenfall Europe Sales GmbH,2025-07-01,2025-07-31,electricity,6375000,0.245,1561875.0,EUR,2025-07-31,paid
+INV-2025-DE-08858,DE-BER-01,Berlin Headquarters,Vattenfall Europe Sales GmbH,2025-08-01,2025-08-31,electricity,6729167,0.245,1648645.92,EUR,2025-08-31,paid
+INV-2025-DE-08859,DE-BER-01,Berlin Headquarters,Vattenfall Europe Sales GmbH,2025-09-01,2025-09-30,electricity,6729167,0.245,1648645.92,EUR,2025-09-30,pending
+INV-2025-DE-08860,DE-ERL-01,Erlangen Research Campus,E.ON Energie Deutschland GmbH,2024-10-01,2024-10-31,electricity,5958333,0.238,1418083.25,EUR,2024-10-31,paid
+INV-2025-DE-08861,DE-ERL-01,Erlangen Research Campus,E.ON Energie Deutschland GmbH,2024-11-01,2024-11-30,electricity,6229167,0.238,1482541.75,EUR,2024-11-30,paid
+INV-2025-DE-08862,DE-ERL-01,Erlangen Research Campus,E.ON Energie Deutschland GmbH,2024-12-01,2024-12-31,electricity,6500000,0.238,1547000.0,EUR,2024-12-31,paid
+INV-2025-DE-08863,DE-ERL-01,Erlangen Research Campus,E.ON Energie Deutschland GmbH,2025-01-01,2025-01-31,electricity,6229167,0.238,1482541.75,EUR,2025-01-31,paid
+INV-2025-DE-08864,DE-ERL-01,Erlangen Research Campus,E.ON Energie Deutschland GmbH,2025-02-01,2025-02-28,electricity,5687500,0.238,1353625.0,EUR,2025-02-28,paid
+INV-2025-DE-08865,DE-ERL-01,Erlangen Research Campus,E.ON Energie Deutschland GmbH,2025-03-01,2025-03-31,electricity,5145833,0.238,1224708.25,EUR,2025-03-31,paid
+INV-2025-DE-08866,DE-ERL-01,Erlangen Research Campus,E.ON Energie Deutschland GmbH,2025-04-01,2025-04-30,electricity,4604167,0.238,1095791.75,EUR,2025-04-30,paid
+INV-2025-DE-08867,DE-ERL-01,Erlangen Research Campus,E.ON Energie Deutschland GmbH,2025-05-01,2025-05-31,electricity,4604167,0.238,1095791.75,EUR,2025-05-31,paid
+INV-2025-DE-08868,DE-ERL-01,Erlangen Research Campus,E.ON Energie Deutschland GmbH,2025-06-01,2025-06-30,electricity,4875000,0.238,1160250.0,EUR,2025-06-30,paid
+INV-2025-DE-08869,DE-ERL-01,Erlangen Research Campus,E.ON Energie Deutschland GmbH,2025-07-01,2025-07-31,electricity,4875000,0.238,1160250.0,EUR,2025-07-31,paid
+INV-2025-DE-08870,DE-ERL-01,Erlangen Research Campus,E.ON Energie Deutschland GmbH,2025-08-01,2025-08-31,electricity,5145833,0.238,1224708.25,EUR,2025-08-31,paid
+INV-2025-DE-08871,DE-ERL-01,Erlangen Research Campus,E.ON Energie Deutschland GmbH,2025-09-01,2025-09-30,electricity,5145833,0.238,1224708.25,EUR,2025-09-30,pending
+INV-2025-CN-22311,CN-WUX-01,Wuxi Smart Infrastructure Plant,State Grid Jiangsu Electric Power,2024-10-01,2024-10-31,electricity,13905000,0.58,8064900.0,CNY,2024-10-31,paid
+INV-2025-CN-22312,CN-WUX-01,Wuxi Smart Infrastructure Plant,State Grid Jiangsu Electric Power,2024-11-01,2024-11-30,electricity,13132500,0.58,7616850.0,CNY,2024-11-30,paid
+INV-2025-CN-22313,CN-WUX-01,Wuxi Smart Infrastructure Plant,State Grid Jiangsu Electric Power,2024-12-01,2024-12-31,electricity,13132500,0.58,7616850.0,CNY,2024-12-31,paid
+INV-2025-CN-22314,CN-WUX-01,Wuxi Smart Infrastructure Plant,State Grid Jiangsu Electric Power,2025-01-01,2025-01-31,electricity,13905000,0.58,8064900.0,CNY,2025-01-31,paid
+INV-2025-CN-22315,CN-WUX-01,Wuxi Smart Infrastructure Plant,State Grid Jiangsu Electric Power,2025-02-01,2025-02-28,electricity,14677500,0.58,8512950.0,CNY,2025-02-28,paid
+INV-2025-CN-22316,CN-WUX-01,Wuxi Smart Infrastructure Plant,State Grid Jiangsu Electric Power,2025-03-01,2025-03-31,electricity,15450000,0.58,8961000.0,CNY,2025-03-31,paid
+INV-2025-CN-22317,CN-WUX-01,Wuxi Smart Infrastructure Plant,State Grid Jiangsu Electric Power,2025-04-01,2025-04-30,electricity,16995000,0.58,9857100.0,CNY,2025-04-30,paid
+INV-2025-CN-22318,CN-WUX-01,Wuxi Smart Infrastructure Plant,State Grid Jiangsu Electric Power,2025-05-01,2025-05-31,electricity,18540000,0.58,10753200.0,CNY,2025-05-31,paid
+INV-2025-CN-22319,CN-WUX-01,Wuxi Smart Infrastructure Plant,State Grid Jiangsu Electric Power,2025-06-01,2025-06-30,electricity,17767500,0.58,10305150.0,CNY,2025-06-30,paid
+INV-2025-CN-22320,CN-WUX-01,Wuxi Smart Infrastructure Plant,State Grid Jiangsu Electric Power,2025-07-01,2025-07-31,electricity,16995000,0.58,9857100.0,CNY,2025-07-31,paid
+INV-2025-CN-22321,CN-WUX-01,Wuxi Smart Infrastructure Plant,State Grid Jiangsu Electric Power,2025-08-01,2025-08-31,electricity,16222500,0.58,9409050.0,CNY,2025-08-31,paid
+INV-2025-CN-22322,CN-WUX-01,Wuxi Smart Infrastructure Plant,State Grid Jiangsu Electric Power,2025-09-01,2025-09-30,electricity,14677500,0.58,8512950.0,CNY,2025-09-30,pending
+INV-2025-US-19452,US-LEX-01,Lexington Mobility Plant,LG&E and KU Energy,2024-10-01,2024-10-31,electricity,8708333,0.118,1027583.29,USD,2024-10-31,paid
+INV-2025-US-19453,US-LEX-01,Lexington Mobility Plant,LG&E and KU Energy,2024-11-01,2024-11-30,electricity,9104167,0.118,1074291.71,USD,2024-11-30,paid
+INV-2025-US-19454,US-LEX-01,Lexington Mobility Plant,LG&E and KU Energy,2024-12-01,2024-12-31,electricity,9500000,0.118,1121000.0,USD,2024-12-31,paid
+INV-2025-US-19455,US-LEX-01,Lexington Mobility Plant,LG&E and KU Energy,2025-01-01,2025-01-31,electricity,9104167,0.118,1074291.71,USD,2025-01-31,paid
+INV-2025-US-19456,US-LEX-01,Lexington Mobility Plant,LG&E and KU Energy,2025-02-01,2025-02-28,electricity,8312500,0.118,980875.0,USD,2025-02-28,paid
+INV-2025-US-19457,US-LEX-01,Lexington Mobility Plant,LG&E and KU Energy,2025-03-01,2025-03-31,electricity,7520833,0.118,887458.29,USD,2025-03-31,paid
+INV-2025-US-19458,US-LEX-01,Lexington Mobility Plant,LG&E and KU Energy,2025-04-01,2025-04-30,electricity,6729167,0.118,794041.71,USD,2025-04-30,paid
+INV-2025-US-19459,US-LEX-01,Lexington Mobility Plant,LG&E and KU Energy,2025-05-01,2025-05-31,electricity,6729167,0.118,794041.71,USD,2025-05-31,paid
+INV-2025-US-19460,US-LEX-01,Lexington Mobility Plant,LG&E and KU Energy,2025-06-01,2025-06-30,electricity,7125000,0.118,840750.0,USD,2025-06-30,paid
+INV-2025-US-19461,US-LEX-01,Lexington Mobility Plant,LG&E and KU Energy,2025-07-01,2025-07-31,electricity,7125000,0.118,840750.0,USD,2025-07-31,paid
+INV-2025-US-19462,US-LEX-01,Lexington Mobility Plant,LG&E and KU Energy,2025-08-01,2025-08-31,electricity,7520833,0.118,887458.29,USD,2025-08-31,paid
+INV-2025-US-19463,US-LEX-01,Lexington Mobility Plant,LG&E and KU Energy,2025-09-01,2025-09-30,electricity,7520833,0.118,887458.29,USD,2025-09-30,pending
+INV-2025-IN-41024,IN-GOA-01,Goa Plant,Tata Power Limited,2024-10-01,2024-10-31,electricity,3600000,7.25,26100000.0,INR,2024-10-31,paid
+INV-2025-IN-41025,IN-GOA-01,Goa Plant,Tata Power Limited,2024-11-01,2024-11-30,electricity,3400000,7.25,24650000.0,INR,2024-11-30,paid
+INV-2025-IN-41026,IN-GOA-01,Goa Plant,Tata Power Limited,2024-12-01,2024-12-31,electricity,3400000,7.25,24650000.0,INR,2024-12-31,paid
+INV-2025-IN-41027,IN-GOA-01,Goa Plant,Tata Power Limited,2025-01-01,2025-01-31,electricity,3600000,7.25,26100000.0,INR,2025-01-31,paid
+INV-2025-IN-41028,IN-GOA-01,Goa Plant,Tata Power Limited,2025-02-01,2025-02-28,electricity,3800000,7.25,27550000.0,INR,2025-02-28,paid
+INV-2025-IN-41029,IN-GOA-01,Goa Plant,Tata Power Limited,2025-03-01,2025-03-31,electricity,4000000,7.25,29000000.0,INR,2025-03-31,paid
+INV-2025-IN-41030,IN-GOA-01,Goa Plant,Tata Power Limited,2025-04-01,2025-04-30,electricity,4400000,7.25,31900000.0,INR,2025-04-30,paid
+INV-2025-IN-41031,IN-GOA-01,Goa Plant,Tata Power Limited,2025-05-01,2025-05-31,electricity,4800000,7.25,34800000.0,INR,2025-05-31,paid
+INV-2025-IN-41032,IN-GOA-01,Goa Plant,Tata Power Limited,2025-06-01,2025-06-30,electricity,4600000,7.25,33350000.0,INR,2025-06-30,paid
+INV-2025-IN-41033,IN-GOA-01,Goa Plant,Tata Power Limited,2025-07-01,2025-07-31,electricity,4400000,7.25,31900000.0,INR,2025-07-31,paid
+INV-2025-IN-41034,IN-GOA-01,Goa Plant,Tata Power Limited,2025-08-01,2025-08-31,electricity,4200000,7.25,30450000.0,INR,2025-08-31,paid
+INV-2025-IN-41035,IN-GOA-01,Goa Plant,Tata Power Limited,2025-09-01,2025-09-30,electricity,3800000,7.25,27550000.0,INR,2025-09-30,pending

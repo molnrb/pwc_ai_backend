@@ -22,6 +22,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 import uvicorn
 
+from input_bundle import get_input_dir
+
 load_dotenv()
 
 # ── Paths ──────────────────────────────────────────────────────────────
@@ -32,7 +34,7 @@ WORKSPACE = Path(_ws)
 CLAIMS_DIR = WORKSPACE / "claims"
 EVIDENCE_DIR = WORKSPACE / "evidence"
 REPORT_PATH = WORKSPACE / "audit_report.json"
-INPUT_DIR = WORKSPACE / "input"
+INPUT_DIR = get_input_dir(WORKSPACE)
 
 MOCK_MODE = os.environ.get("MOCK_MODE", "true").lower() in ("1", "true", "yes")
 
@@ -272,10 +274,71 @@ def _collect_evidence_files() -> list:
     return findings
 
 
+def _finding_page_sort_key(finding: dict) -> int:
+    page = finding.get("page")
+    return page if isinstance(page, int) else 0
+
+
 def _run_live_audit(progress_callback=None) -> tuple[str, dict]:
     """Run the live audit with LLM assistance when available."""
-    from orchestrator import is_llm_available, run_live_llm_audit
-    from pipeline import run_full_audit
+    from orchestrator import get_pipeline_mode, is_llm_available, run_live_llm_audit
+    from pipeline import run_full_audit, run_generic_audit
+
+    pipeline_mode = get_pipeline_mode()
+
+    if pipeline_mode == "generic":
+        logger.info("Live audit requested: forcing generic_v1 pipeline")
+        if progress_callback is not None:
+            progress_callback(
+                "status",
+                {
+                    "message": "Atlas CSRD Audit Engine initializing generic_v1 pipeline...",
+                    "mode": "live_generic",
+                    "pipeline": "generic_v1",
+                },
+            )
+        return "live_generic", run_generic_audit(progress_callback=progress_callback)
+
+    if pipeline_mode == "legacy":
+        logger.info("Live audit requested: forcing deterministic legacy pipeline")
+        if progress_callback is not None:
+            progress_callback(
+                "status",
+                {
+                    "message": "Atlas CSRD Audit Engine initializing deterministic pipeline...",
+                    "mode": "live_deterministic",
+                    "pipeline": "deterministic",
+                },
+            )
+        return "live_deterministic", run_full_audit(progress_callback=progress_callback)
+
+    if pipeline_mode == "deepagents":
+        if is_llm_available():
+            logger.info("Live audit requested: forcing deepagents pipeline")
+            if progress_callback is not None:
+                progress_callback(
+                    "status",
+                    {
+                        "message": "Atlas CSRD Audit Engine initializing deepagents pipeline...",
+                        "mode": "live_llm",
+                        "pipeline": "deepagents-supervised",
+                    },
+                )
+            return "live_llm", run_live_llm_audit(progress_callback=progress_callback)
+
+        logger.warning(
+            "Deepagents mode requested without LLM availability: falling back to deterministic pipeline"
+        )
+        if progress_callback is not None:
+            progress_callback(
+                "status",
+                {
+                    "message": "Deepagents mode requested but DeepSeek is unavailable. Running deterministic pipeline.",
+                    "mode": "live_deterministic",
+                    "pipeline": "deterministic",
+                },
+            )
+        return "live_deterministic", run_full_audit(progress_callback=progress_callback)
 
     if is_llm_available():
         logger.info("Live audit requested: selecting LLM-assisted pipeline")
@@ -285,6 +348,7 @@ def _run_live_audit(progress_callback=None) -> tuple[str, dict]:
                 {
                     "message": "Atlas CSRD Audit Engine initializing live LLM pipeline...",
                     "mode": "live_llm",
+                    "pipeline": "deepagents-supervised",
                 },
             )
         return "live_llm", run_live_llm_audit(progress_callback=progress_callback)
@@ -298,6 +362,7 @@ def _run_live_audit(progress_callback=None) -> tuple[str, dict]:
             {
                 "message": "DeepSeek is unavailable. Running deterministic live pipeline.",
                 "mode": "live_deterministic",
+                "pipeline": "deterministic",
             },
         )
     return "live_deterministic", run_full_audit(progress_callback=progress_callback)
@@ -406,7 +471,7 @@ async def get_evidence():
 
     return JSONResponse(
         {
-            "evidence": sorted(findings, key=lambda x: x.get("page", 0)),
+            "evidence": sorted(findings, key=_finding_page_sort_key),
             "summary": _compute_summary(findings),
         }
     )
@@ -469,7 +534,7 @@ async def run_audit():
         return JSONResponse(
             {
                 "mode": "mock",
-                "evidence": sorted(MOCK_EVIDENCE, key=lambda x: x.get("page", 0)),
+                "evidence": sorted(MOCK_EVIDENCE, key=_finding_page_sort_key),
                 "summary": summary,
                 "review_required": summary.get("review_required", False),
                 "red_flags": summary.get("red_flags", []),
@@ -482,8 +547,10 @@ async def run_audit():
         return JSONResponse(
             {
                 "mode": mode,
+                "pipeline": report.get("audit_metadata", {}).get("pipeline"),
+                "audit_metadata": report.get("audit_metadata", {}),
                 "evidence": sorted(
-                    report.get("findings", []), key=lambda x: x.get("page", 0)
+                    report.get("findings", []), key=_finding_page_sort_key
                 ),
                 "summary": report.get("summary", {}),
                 "review_required": report.get("review_required", False),
@@ -494,6 +561,7 @@ async def run_audit():
         return JSONResponse(
             {
                 "mode": "live",
+                "pipeline": None,
                 "error": str(e),
                 "evidence": [],
                 "summary": _compute_summary([]),
