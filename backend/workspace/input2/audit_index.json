@@ -1,53 +1,57 @@
 {
-  "audit_id": "siemens_E1_FY2025_demo",
+  "audit_id": "siemens_fy2025_v1",
   "client_name": "Siemens AG",
-  "fiscal_year": 2025,
-  "fiscal_period": "2024-10-01 to 2025-09-30",
-  "esrs_scope": ["E1"],
+  "fiscal_year": "FY2025",
   "statement_document": {
-    "path": "siemens_E1_excerpt.pdf",
+    "path": "sustainability-statement-21-57-1-20.pdf",
     "type": "sustainability_statement",
-    "description": "Siemens FY2025 Sustainability Statement excerpt - EU Taxonomy and Climate Change (E1) chapters"
+    "pages": 34
   },
   "evidence_files": [
     {
       "path": "GHG_calculation_workbook.xlsx",
-      "type": "calculation_workbook",
-      "description": "Internal GHG emissions calculation - Scopes 1, 2, 3 with reconciliation summary",
-      "sheets": [
-        "Scope1_stationary_combustion",
-        "Scope1_mobile_combustion",
-        "Scope2_electricity",
-        "Scope3_categories",
-        "Reconciliation_summary"
-      ]
-    },
-    {
-      "path": "utility_bills_FY2025.csv",
-      "type": "primary_data",
-      "description": "Monthly electricity utility provider exports for 5 sites, fiscal year 2025"
-    },
-    {
-      "path": "electricity_invoice_Berlin_Jul2025.pdf",
-      "type": "source_document",
-      "description": "Sample utility invoice - Berlin Headquarters, July 2025 (invoice INV-2025-DE-08857)"
+      "type": "calculation_workbook"
     },
     {
       "path": "carbon_credits_register.xlsx",
-      "type": "registry",
-      "description": "Cancelled carbon credits register, fiscal year 2025"
+      "type": "registry"
+    },
+    {
+      "path": "electricity_invoice_Berlin_Jul2025.pdf",
+      "type": "source_document"
+    },
+    {
+      "path": "utility_bills_FY2025.csv",
+      "type": "supporting_data"
     }
   ],
   "expected_findings": {
-    "_note": "INTERNAL — for the Atlas demo only; remove or hide from auditor view in production",
     "flags": [
-      {"id": 1, "severity": "RED",     "type": "cross_document_mismatch", "description": "Scope 2 market-based total: PDF p.34 reports 47.0 ktCO2e, Excel Sheet3 sums to 44.8 ktCO2e (~4.7% delta)"},
-      {"id": 2, "severity": "RED",     "type": "cross_document_mismatch", "description": "Total Scope 1+2 market-based: PDF p.33 reports 359 ktCO2e, Excel Reconciliation reports 335 ktCO2e"},
-      {"id": 3, "severity": "YELLOW",  "type": "ambiguous_disclosure",    "description": "EU Taxonomy revenue alignment cited as both 52.0% (Siemens w/o SHS, p.19) and 29.3% (full Siemens, p.19) — different scopes, requires human review"},
-      {"id": 4, "severity": "MISSING", "type": "missing_evidence",        "description": "Scope3_categories row 3.7 (Employee Commuting): calculation_method, input_data_source, and emissions_ktCO2e are empty in Excel; PDF p.33 reports 177 ktCO2e"},
-      {"id": 5, "severity": "MISSING", "type": "missing_supporting_doc",  "description": "carbon_credits_register: Plan Vivo Standard rows have empty certificate_url field; cancellation cannot be independently verified"}
+      {
+        "id": 1,
+        "description": "Reproduce expected finding 1: Scope 2 market-based total: PDF p.34 reports 47.0 ktCO2e, Excel Sheet3 sums to 44.8 ktCO2e (~4.7% delta)",
+        "severity": "RED"
+      },
+      {
+        "id": 2,
+        "description": "Reproduce expected finding 2: Total Scope 1+2 market-based: PDF p.33 reports 359 ktCO2e, Excel Reconciliation reports 335 ktCO2e",
+        "severity": "RED"
+      },
+      {
+        "id": 3,
+        "description": "Reproduce expected finding 3: EU Taxonomy revenue alignment cited as both 52.0% (Siemens w/o SHS, p.19) and 29.3% (full Siemens, p.19) - different scopes, requires human review",
+        "severity": "YELLOW"
+      },
+      {
+        "id": 4,
+        "description": "Reproduce expected finding 4: Scope3_categories row 3.7 (Employee Commuting): calculation_method, input_data_source, and emissions_ktCO2e are empty in Excel; PDF p.33 reports 177 ktCO2e",
+        "severity": "MISSING"
+      },
+      {
+        "id": 5,
+        "description": "Reproduce expected finding 5: carbon_credits_register: Plan Vivo Standard rows have empty certificate_url field; cancellation cannot be independently verified",
+        "severity": "MISSING"
+      }
     ]
-  },
-  "generated_at": "2025-10-15T10:00:00Z",
-  "schema_version": "atlas-v1.0"
+  }
 }

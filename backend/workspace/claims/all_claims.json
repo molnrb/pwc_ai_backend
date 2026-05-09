@@ -1,0 +1,47 @@
+[
+  {
+    "data_point": "scope1_scope2_total",
+    "claimed_value": 938,
+    "unit": "ktCO₂e",
+    "page": 8,
+    "paragraph_idx": 16,
+    "source_hint": "energia_2024.xlsx",
+    "claim_text": "Scope 1 & 2 (market-based) 938 (62)%"
+  },
+  {
+    "data_point": "renewable_pct",
+    "claimed_value": 86,
+    "unit": "%",
+    "page": 12,
+    "paragraph_idx": 8,
+    "source_hint": "energia_2024.xlsx",
+    "claim_text": "In fiscal 2025, our purchased electricity originated from renewable sources continued to increase and now stands at 86%, showing progress towards our 2030 target."
+  },
+  {
+    "data_point": "scope1_emission",
+    "claimed_value": 288,
+    "unit": "ktCO₂e",
+    "page": 15,
+    "paragraph_idx": 13,
+    "source_hint": "energia_2024.xlsx",
+    "claim_text": "Gross Scope 1 GHG emissions - 288 - - -"
+  },
+  {
+    "data_point": "scope2_emission",
+    "claimed_value": 71,
+    "unit": "ktCO₂e",
+    "page": 15,
+    "paragraph_idx": 16,
+    "source_hint": "energia_2024.xlsx",
+    "claim_text": "Gross market-based Scope 2 GHG emissions - 71 - - -"
+  },
+  {
+    "data_point": "scope3_emission",
+    "claimed_value": 179222,
+    "unit": "ktCO₂e",
+    "page": 15,
+    "paragraph_idx": 33,
+    "source_hint": "scope3_szallito.xlsx",
+    "claim_text": "Total Gross indirect (Scope 3) GHG emissions 179,222 159,144 (30)% - (2.7)%"
+  }
+]

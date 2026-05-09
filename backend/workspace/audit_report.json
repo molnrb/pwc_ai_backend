@@ -1,18 +1,15 @@
 {
   "audit_metadata": {
-    "document": "siemens_E1_excerpt.pdf",
+    "document": "sustainability-statement-21-57-1-20.pdf",
     "standard": "ESRS E1 — Climate Change",
     "framework": "EU CSRD",
-    "pipeline": "mock",
-    "parser_mode": "scripted-manifest",
-    "started_at": "2026-05-09T06:01:52.539337+00:00",
-    "completed_at": "2026-05-09T06:01:52.539337+00:00",
-    "total_pages": 34,
+    "pipeline": "llm-assisted",
+    "parser_mode": "llm",
+    "started_at": "2026-05-09T08:09:36.817141+00:00",
+    "completed_at": "2026-05-09T08:09:47.195842+00:00",
+    "total_pages": 20,
     "total_claims_found": 5,
-    "total_findings": 5,
-    "audit_id": "siemens_E1_FY2025_demo",
-    "client_name": "Siemens AG",
-    "fiscal_year": 2025
+    "total_findings": 5
   },
   "document_inventory": [
     {
@@ -24,8 +21,8 @@
     {
       "filename": "audit_index.json",
       "type": ".json",
-      "size_kb": 2.6,
-      "role": "input_document"
+      "size_kb": 1.9,
+      "role": "manifest_internal"
     },
     {
       "filename": "carbon_credits_register.xlsx",
@@ -40,142 +37,112 @@
       "role": "source_document"
     },
     {
-      "filename": "siemens_E1_excerpt.pdf",
+      "filename": "sustainability-statement-21-57-1-20.pdf",
       "type": ".pdf",
       "size_kb": 678.7,
-      "role": "sustainability_statement"
+      "role": "statement"
     },
     {
       "filename": "utility_bills_FY2025.csv",
       "type": ".csv",
       "size_kb": 9.3,
-      "role": "primary_data"
+      "role": "supporting"
     }
   ],
   "findings": [
     {
-      "claim_id": "mock_flag_3",
-      "page": 19,
-      "flag": "yellow",
-      "claim_text": "EU Taxonomy revenue alignment is disclosed with two different scope bases",
-      "data_point": "eu_taxonomy_revenue_alignment_scope_mismatch",
-      "claimed_value": 52.0,
-      "source_value": 29.3,
+      "data_point": "scope1_scope2_total",
+      "claim_text": "Scope 1 & 2 (market-based) 938 (62)%",
+      "claimed_value": 938,
+      "unit": "ktCO₂e",
+      "page": 8,
+      "paragraph_idx": 16,
+      "flag": "grey",
+      "deviation_pct": null,
+      "source_value": null,
+      "source_file": "energia_2024.xlsx",
+      "source_sheet": "Scope1_Scope2",
+      "source_cell": null,
+      "explanation": "Error reading source file 'energia_2024.xlsx': [Errno 2] No such file or directory: '/Users/balazsmolnar/Documents/pwc_ai_backend/backend/workspace/input2/energia_2024.xlsx'. Manual verification required.",
+      "review_required": true
+    },
+    {
+      "data_point": "renewable_pct",
+      "claim_text": "In fiscal 2025, our purchased electricity originated from renewable sources continued to increase and now stands at 86%, showing progress towards our 2030 target.",
+      "claimed_value": 86,
       "unit": "%",
-      "source_file": "siemens_E1_excerpt.pdf",
-      "source_sheet": null,
-      "source_cell": "p.19",
-      "deviation_pct": null,
-      "explanation": "EU Taxonomy revenue alignment cited as both 52.0% (Siemens w/o SHS, p.19) and 29.3% (full Siemens, p.19) — different scopes, requires human review",
-      "review_required": true
-    },
-    {
-      "claim_id": "mock_flag_2",
-      "page": 33,
-      "flag": "red",
-      "claim_text": "Total Scope 1+2 market-based emissions reported in the sustainability statement",
-      "data_point": "scope12_market_based_total",
-      "claimed_value": 359.0,
-      "source_value": 335.0,
-      "unit": "ktCO2e",
-      "source_file": "GHG_calculation_workbook.xlsx",
-      "source_sheet": "Reconciliation_summary",
-      "source_cell": "market-based total",
-      "deviation_pct": 6.7,
-      "explanation": "Total Scope 1+2 market-based: PDF p.33 reports 359 ktCO2e, Excel Reconciliation reports 335 ktCO2e",
-      "review_required": true
-    },
-    {
-      "claim_id": "mock_flag_4",
-      "page": 33,
+      "page": 12,
+      "paragraph_idx": 8,
       "flag": "grey",
-      "claim_text": "Employee commuting emissions reported in the PDF require support from the workbook",
-      "data_point": "scope3_category7_employee_commuting",
-      "claimed_value": 177.0,
-      "source_value": null,
-      "unit": "ktCO2e",
-      "source_file": "GHG_calculation_workbook.xlsx",
-      "source_sheet": "Scope3_categories",
-      "source_cell": "row 3.7",
       "deviation_pct": null,
-      "explanation": "Scope3_categories row 3.7 (Employee Commuting): calculation_method, input_data_source, and emissions_ktCO2e are empty in Excel; PDF p.33 reports 177 ktCO2e",
+      "source_value": null,
+      "source_file": "energia_2024.xlsx",
+      "source_sheet": "Megujulo",
+      "source_cell": null,
+      "explanation": "Error reading source file 'energia_2024.xlsx': [Errno 2] No such file or directory: '/Users/balazsmolnar/Documents/pwc_ai_backend/backend/workspace/input2/energia_2024.xlsx'. Manual verification required.",
       "review_required": true
     },
     {
-      "claim_id": "mock_flag_1",
-      "page": 34,
-      "flag": "red",
-      "claim_text": "Scope 2 market-based total reported in the sustainability statement",
-      "data_point": "scope2_market_based_total",
-      "claimed_value": 47.0,
-      "source_value": 44.8,
-      "unit": "ktCO2e",
-      "source_file": "GHG_calculation_workbook.xlsx",
-      "source_sheet": "Scope2_electricity",
-      "source_cell": "market-based total",
-      "deviation_pct": 4.7,
-      "explanation": "Scope 2 market-based total: PDF p.34 reports 47.0 ktCO2e, Excel Sheet3 sums to 44.8 ktCO2e (~4.7% delta)",
-      "review_required": true
-    },
-    {
-      "claim_id": "mock_flag_5",
-      "page": 34,
+      "data_point": "scope1_emission",
+      "claim_text": "Gross Scope 1 GHG emissions - 288 - - -",
+      "claimed_value": 288,
+      "unit": "ktCO₂e",
+      "page": 15,
+      "paragraph_idx": 13,
       "flag": "grey",
-      "claim_text": "Cancelled carbon credits require independently verifiable certificate URLs",
-      "data_point": "carbon_credits_certificate_url",
-      "claimed_value": null,
-      "source_value": null,
-      "unit": "supporting document",
-      "source_file": "carbon_credits_register.xlsx",
-      "source_sheet": "Plan Vivo rows",
-      "source_cell": "certificate_url",
       "deviation_pct": null,
-      "explanation": "carbon_credits_register: Plan Vivo Standard rows have empty certificate_url field; cancellation cannot be independently verified",
+      "source_value": null,
+      "source_file": "energia_2024.xlsx",
+      "source_sheet": "Scope1_Scope2",
+      "source_cell": null,
+      "explanation": "Error reading source file 'energia_2024.xlsx': [Errno 2] No such file or directory: '/Users/balazsmolnar/Documents/pwc_ai_backend/backend/workspace/input2/energia_2024.xlsx'. Manual verification required.",
+      "review_required": true
+    },
+    {
+      "data_point": "scope2_emission",
+      "claim_text": "Gross market-based Scope 2 GHG emissions - 71 - - -",
+      "claimed_value": 71,
+      "unit": "ktCO₂e",
+      "page": 15,
+      "paragraph_idx": 16,
+      "flag": "grey",
+      "deviation_pct": null,
+      "source_value": null,
+      "source_file": "energia_2024.xlsx",
+      "source_sheet": "Scope1_Scope2",
+      "source_cell": null,
+      "explanation": "Error reading source file 'energia_2024.xlsx': [Errno 2] No such file or directory: '/Users/balazsmolnar/Documents/pwc_ai_backend/backend/workspace/input2/energia_2024.xlsx'. Manual verification required.",
+      "review_required": true
+    },
+    {
+      "data_point": "scope3_emission",
+      "claim_text": "Total Gross indirect (Scope 3) GHG emissions 179,222 159,144 (30)% - (2.7)%",
+      "claimed_value": 179222,
+      "unit": "ktCO₂e",
+      "page": 15,
+      "paragraph_idx": 33,
+      "flag": "grey",
+      "deviation_pct": null,
+      "source_value": null,
+      "source_file": "scope3_szallito.xlsx",
+      "source_sheet": "Scope3",
+      "source_cell": null,
+      "explanation": "Error reading source file 'scope3_szallito.xlsx': [Errno 2] No such file or directory: '/Users/balazsmolnar/Documents/pwc_ai_backend/backend/workspace/input2/scope3_szallito.xlsx'. Manual verification required.",
       "review_required": true
     }
   ],
   "summary": {
     "green_count": 0,
-    "yellow_count": 1,
-    "red_count": 2,
-    "grey_count": 2,
+    "yellow_count": 0,
+    "red_count": 0,
+    "grey_count": 5,
     "total": 5,
-    "material_red_count": 2,
-    "red_flags": [
-      {
-        "data_point": "scope12_market_based_total",
-        "claimed": 359.0,
-        "actual": 335.0,
-        "deviation_pct": 6.7,
-        "explanation": "Total Scope 1+2 market-based: PDF p.33 reports 359 ktCO2e, Excel Reconciliation reports 335 ktCO2e"
-      },
-      {
-        "data_point": "scope2_market_based_total",
-        "claimed": 47.0,
-        "actual": 44.8,
-        "deviation_pct": 4.7,
-        "explanation": "Scope 2 market-based total: PDF p.34 reports 47.0 ktCO2e, Excel Sheet3 sums to 44.8 ktCO2e (~4.7% delta)"
-      }
-    ],
+    "material_red_count": 0,
+    "red_flags": [],
     "review_required": true,
-    "verdict": "FAIL — 2 material misstatement(s) detected",
-    "materiality_note": "2 material error(s) found. Auditor must investigate flagged items before signing off."
+    "verdict": "PASS",
+    "materiality_note": "No material misstatements. Report is consistent with source data."
   },
-  "red_flags": [
-    {
-      "data_point": "scope12_market_based_total",
-      "claimed": 359.0,
-      "actual": 335.0,
-      "deviation_pct": 6.7,
-      "explanation": "Total Scope 1+2 market-based: PDF p.33 reports 359 ktCO2e, Excel Reconciliation reports 335 ktCO2e"
-    },
-    {
-      "data_point": "scope2_market_based_total",
-      "claimed": 47.0,
-      "actual": 44.8,
-      "deviation_pct": 4.7,
-      "explanation": "Scope 2 market-based total: PDF p.34 reports 47.0 ktCO2e, Excel Sheet3 sums to 44.8 ktCO2e (~4.7% delta)"
-    }
-  ],
+  "red_flags": [],
   "review_required": true
 }

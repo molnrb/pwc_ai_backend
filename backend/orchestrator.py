@@ -53,10 +53,10 @@ def _make_model():
         model=MODEL,
         temperature=0,
         max_tokens=4096,
-    base_url=DEEPSEEK_API_BASE,
-    timeout=180.0,
-    max_retries=2,
-    disabled_params={"thinking": None},
+        base_url=DEEPSEEK_API_BASE,
+        timeout=180.0,
+        max_retries=2,
+        disabled_params={"thinking": None},
     )
 
 
@@ -120,6 +120,7 @@ def create_atlas_orchestrator():
     )
 
 
+# ── Helpers ────────────────────────────────────────────────────────────────
 
 
 def _page_ranges(total_pages: int, batch_size: int = 3) -> list[str]:
@@ -131,11 +132,9 @@ def _page_ranges(total_pages: int, batch_size: int = 3) -> list[str]:
 
 def _normalize_finding(f: dict[str, Any]) -> dict[str, Any]:
     """Normalize evidence findings from tracer agents that may use non-standard schema fields."""
-    # Map 'validation' -> 'flag' if flag is absent
     if "flag" not in f and "validation" in f:
         f = dict(f)
         f["flag"] = f.pop("validation")
-    # Map 'note' -> 'explanation' if explanation is absent
     if "explanation" not in f and "note" in f:
         f = dict(f)
         f["explanation"] = f.pop("note")
@@ -406,7 +405,25 @@ def _build_report(pdf_path: Path, claims: list[dict[str, Any]], findings: list[d
     return report
 
 
-def _run_deepagents_demo_audit(progress_callback=None, pdf_filename: str = "atlas_sustainability_statement.pdf") -> dict:
+def _run_or_await(coro: Any) -> Any:
+    """Run a coroutine, adapting to whether we're inside a running event loop."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # No running loop — use asyncio.run()
+        return asyncio.run(coro)
+    else:
+        # Running loop — use run_coroutine_threadsafe in a sync context
+        # or just return the coroutine for the caller to await.
+        # Since _run_deepagents_demo_audit is called from a sync context
+        # inside uvicorn's thread, we use asyncio.run_coroutine_threadsafe
+        # when there's already a running loop.
+        import concurrent.futures
+        future = asyncio.run_coroutine_threadsafe(coro, loop)
+        return future.result(timeout=600)
+
+
+async def _run_deepagents_demo_audit_async(progress_callback=None, pdf_filename: str = "atlas_sustainability_statement.pdf") -> dict:
     from pipeline import _emit, _get_page_count, _resolve_pdf_path, reset_workspace
 
     reset_workspace()
@@ -427,6 +444,7 @@ def _run_deepagents_demo_audit(progress_callback=None, pdf_filename: str = "atla
         "total": len(page_ranges) + 1,
     })
 
+    # ── Parse phase ──────────────────────────────────────────────────────
     parser_agent = create_parser_subagent(timeout_seconds=PARSER_TIMEOUT_SECONDS)
     _emit(progress_callback, "phase", {
         "phase": "parse_claims",
@@ -437,15 +455,20 @@ def _run_deepagents_demo_audit(progress_callback=None, pdf_filename: str = "atla
         "task": f"Dispatching {len(page_ranges)} parser batches",
     })
 
-    parser_results = asyncio.run(_parse_all_batches(parser_agent, pdf_path, page_ranges, progress_callback))
+    parser_results = await _parse_all_batches(parser_agent, pdf_path, page_ranges, progress_callback)
     parser_errors = [result for result in parser_results if isinstance(result, Exception)]
     if parser_errors:
-        raise RuntimeError(f"Deepagents parser batch failed: {parser_errors[0]}") from parser_errors[0]
+        _emit(progress_callback, "status", {
+            "message": (
+                f"Parser initial pass completed with {len(parser_errors)} batch exception(s). "
+                "Checking which claim files were saved and proceeding with retry if needed."
+            ),
+            "mode": "deepagents_parser_partial",
+        })
 
+    # ── Check which batches saved successfully ───────────────────────────
     missing_page_ranges = [page_range for page_range in page_ranges if not _claim_batch_path(page_range).is_file()]
     if missing_page_ranges:
-        from pipeline import _emit
-
         _emit(progress_callback, "status", {
             "message": (
                 "Parser batches missing after initial pass: "
@@ -455,17 +478,22 @@ def _run_deepagents_demo_audit(progress_callback=None, pdf_filename: str = "atla
             "missing_batches": missing_page_ranges,
         })
         retry_parser_agent = create_parser_subagent(timeout_seconds=PARSER_RETRY_TIMEOUT_SECONDS)
-        retry_results = asyncio.run(
-            _retry_missing_parser_batches(retry_parser_agent, pdf_path, missing_page_ranges, progress_callback)
-        )
+        retry_results = await _retry_missing_parser_batches(retry_parser_agent, pdf_path, missing_page_ranges, progress_callback)
         retry_errors = [result for result in retry_results if isinstance(result, Exception)]
         if retry_errors:
-            raise RuntimeError(f"Deepagents parser retry failed: {retry_errors[0]}") from retry_errors[0]
+            _emit(progress_callback, "status", {
+                "message": (
+                    f"Parser retry completed with {len(retry_errors)} exception(s) for batches: "
+                    f"{', '.join(missing_page_ranges)}. Continuing with available claim data."
+                ),
+                "mode": "deepagents_parser_retry_partial",
+            })
 
+    # ── Final check: what do we have? ────────────────────────────────────
     missing_page_ranges = [page_range for page_range in page_ranges if not _claim_batch_path(page_range).is_file()]
     claims = _read_json_batches(CLAIMS_DIR)
     if not claims:
-        raise RuntimeError("Deepagents parser produced no claims")
+        raise RuntimeError("Deepagents parser produced no claims — cannot continue")
 
     if missing_page_ranges:
         _emit_missing_batch_status(progress_callback, missing_page_ranges, len(claims))
@@ -486,6 +514,7 @@ def _run_deepagents_demo_audit(progress_callback=None, pdf_filename: str = "atla
         "message": f"{len(claims)} claims extracted by deepagents parser workers",
     })
 
+    # ── Trace phase ──────────────────────────────────────────────────────
     tracer_agent = create_tracer_subagent()
     claim_batch_files = _claim_batch_files()
     _emit(progress_callback, "phase", {
@@ -497,21 +526,25 @@ def _run_deepagents_demo_audit(progress_callback=None, pdf_filename: str = "atla
         "task": f"Tracing {len(claims)} extracted claims across {len(claim_batch_files)} claim batches",
     })
 
-    tracer_results = asyncio.run(
-        _trace_all(
-            tracer_agent,
-            claim_batch_files,
-            asyncio.Semaphore(TRACER_CONCURRENCY),
-            progress_callback,
-        )
+    tracer_results = await _trace_all(
+        tracer_agent,
+        claim_batch_files,
+        asyncio.Semaphore(TRACER_CONCURRENCY),
+        progress_callback,
     )
     tracer_errors = [result for result in tracer_results if isinstance(result, Exception)]
     if tracer_errors:
-        raise RuntimeError(f"Deepagents tracer batch failed: {tracer_errors[0]}") from tracer_errors[0]
+        _emit(progress_callback, "status", {
+            "message": (
+                f"Tracer completed with {len(tracer_errors)} batch exception(s). "
+                "Continuing with available evidence."
+            ),
+            "mode": "deepagents_tracer_partial",
+        })
 
     findings = _read_json_batches(EVIDENCE_DIR, pattern="evidence_*.json")
     if not findings:
-        raise RuntimeError("Deepagents tracer produced no evidence")
+        raise RuntimeError("Deepagents tracer produced no evidence — cannot build report")
     findings = _detect_cross_batch_ambiguity(findings)
 
     for index, finding in enumerate(findings, start=1):
@@ -603,10 +636,10 @@ def run_live_llm_audit(progress_callback=None, pdf_filename: str = "atlas_sustai
         )
 
     try:
-        return _run_deepagents_demo_audit(
+        return _run_or_await(_run_deepagents_demo_audit_async(
             progress_callback=progress_callback,
             pdf_filename=pdf_filename,
-        )
+        ))
     except Exception as exc:
         _emit(progress_callback, "status", {
             "message": f"Deepagents runtime failed. Falling back to the stable LLM-assisted pipeline. Reason: {exc}",
