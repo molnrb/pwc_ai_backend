@@ -795,7 +795,7 @@ async def run_audit():
 
     try:
         logger.info("POST /audit in live mode")
-        mode, report = _run_live_audit()
+        mode, report = await asyncio.to_thread(_run_live_audit)
         return JSONResponse(
             {
                 "mode": mode,
